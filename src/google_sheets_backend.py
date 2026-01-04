@@ -45,13 +45,37 @@ class GoogleSheetsBackend(DataManager):
     def _get_or_create_worksheet(self, title: str, headers: List[str]):
         try:
             ws = self.spreadsheet.worksheet(title)
+            # Check if headers exist. If empty, add headers.
+            # Using get_values for first row is safer than get_all_records which fails on empty sheets.
+            if not ws.get_values("A1:Z1"): 
+                ws.append_row(headers)
         except gspread.WorksheetNotFound:
             ws = self.spreadsheet.add_worksheet(title=title, rows=1000, cols=20)
             ws.append_row(headers)
         return ws
 
     def _get_all_records(self, ws_name: str):
-        return self.worksheets[ws_name].get_all_records()
+        # Add safety check: If sheet is empty (only headers or less), return []
+        # get_all_records() can raise APIError if the sheet is malformed or empty range
+        try:
+            return self.worksheets[ws_name].get_all_records()
+        except Exception:
+            # Fallback: manually read values and parse
+            # This handles cases where get_all_records might fail due to header mismatches or emptiness
+            ws = self.worksheets[ws_name]
+            rows = ws.get_all_values()
+            if len(rows) < 2:
+                return []
+            
+            headers = rows[0]
+            records = []
+            for row in rows[1:]:
+                # Map headers to row values (zip)
+                # Ensure row has same length as headers (pad with empty string)
+                row_padded = row + [""] * (len(headers) - len(row))
+                record = dict(zip(headers, row_padded))
+                records.append(record)
+            return records
 
     def _append_row(self, ws_name: str, data: Dict[str, Any], headers: List[str]):
         row = [data.get(h, "") for h in headers]
@@ -145,6 +169,16 @@ class GoogleSheetsBackend(DataManager):
         cell = ws.find(buyer_name)
         if cell:
             ws.update_cell(cell.row, 3, new_rate)
+    
+    def delete_buyer(self, buyer_name: str) -> None:
+        # Assuming finding by name as that's how update works currently
+        ws = self.worksheets["buyers"]
+        try:
+            cell = ws.find(buyer_name)
+            if cell:
+                ws.delete_rows(cell.row)
+        except gspread.CellNotFound:
+            pass
 
     # Milk Sales
     def get_milk_sales(self) -> List[MilkSale]:

@@ -73,21 +73,21 @@ To publish this app for others to access online:
 3.  **Configure Secrets (For Google Sheets):**
     - Once deployed, go to your app's **Settings** (three dots in top right > Settings).
     - Go to the **"Secrets"** tab.
-    - Paste the content of your `credentials.json` file in the following format:
+    - You must format your JSON key as TOML. This means **removing** the outer curly braces `{}` and all commas `,` at the end of lines.
+    - It should look like this:
       ```toml
       [gcp_service_account]
       type = "service_account"
       project_id = "your-project-id"
-      private_key_id = "..."
-      private_key = "..."
-      client_email = "..."
-      client_id = "..."
-      auth_uri = "..."
-      token_uri = "..."
-      auth_provider_x509_cert_url = "..."
-      client_x509_cert_url = "..."
+      private_key_id = "123456..."
+      private_key = "-----BEGIN PRIVATE KEY-----..."
+      client_email = "bot@project.iam.gserviceaccount.com"
+      client_id = "109876..."
+      auth_uri = "https://accounts.google.com/o/oauth2/auth"
+      token_uri = "https://oauth2.googleapis.com/token"
+      auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
+      client_x509_cert_url = "https://www.googleapis.com/robot/v1/metadata/x509/..."
       ```
-      *(You can basically copy the JSON content and paste it under the `[gcp_service_account]` header. Streamlit is smart enough to parse it).*
     - Click **Save**. The app will restart and connect to Google Sheets.
 
 ## Troubleshooting

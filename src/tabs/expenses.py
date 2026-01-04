@@ -26,9 +26,6 @@ def render(dm: DataManager):
     with st.expander(form_title, expanded=True):
         col1, col2 = st.columns(2)
         with col1:
-            # Date Input
-            # If editing, we need to ensure date matches session state (which is pre-filled below)
-            # Use separate key for widget to avoid conflicts, or handle manually
             new_date = st.date_input("Date", value=st.session_state.exp_date, key="w_exp_date")
             st.session_state.exp_name = st.text_input("Expense Name / Category", value=st.session_state.exp_name, key="w_exp_name")
         with col2:
@@ -46,7 +43,6 @@ def render(dm: DataManager):
         if st.session_state.exp_is_recurring:
             col3, col4 = st.columns(2)
             with col3:
-                # index for selectbox
                 opts = ["Monthly", "Yearly", "Custom"]
                 try:
                     idx = opts.index(st.session_state.exp_rec_type) if st.session_state.exp_rec_type in opts else 0
@@ -115,22 +111,35 @@ def render(dm: DataManager):
 
     st.divider()
 
-    # --- Today's Expenses Management (Edit / Delete) ---
-    today_iso = date.today().isoformat()
+    # --- History Management (Edit / Delete) ---
+    st.subheader("Recent Expenses History")
     expenses = dm.get_expenses()
-    todays_expenses = [e for e in expenses if e.date == today_iso]
     
-    if todays_expenses:
-        st.subheader("Manage Today's Expenses")
+    if expenses:
+        # Sort desc by date
+        expenses = sorted(expenses, key=lambda x: x.date, reverse=True)
         
-        for exp in todays_expenses:
-            c1, c2, c3, c4, c5 = st.columns([2, 1, 2, 0.5, 0.5])
-            c1.write(exp.name)
-            c2.write(f"₹{exp.amount}")
-            c3.write(exp.description)
+        # Use simple table layout with buttons
+        # Headers
+        c1, c2, c3, c4, c5, c6 = st.columns([2, 3, 2, 3, 1, 1])
+        c1.markdown("**Date**")
+        c2.markdown("**Name**")
+        c3.markdown("**Amount**")
+        c4.markdown("**Desc**")
+        c5.markdown("**Edit**")
+        c6.markdown("**Del**")
+        
+        # Pagination to avoid massive list? Streamlit handles rendering reasonably well up to hundreds of rows.
+        # For simplicity, show last 50.
+        for exp in expenses[:50]:
+            c1, c2, c3, c4, c5, c6 = st.columns([2, 3, 2, 3, 1, 1])
+            c1.write(exp.date)
+            c2.write(exp.name)
+            c3.write(f"₹{exp.amount}")
+            c4.write(exp.description)
             
             # Edit Button
-            if c4.button("✏️", key=f"edit_exp_{exp.id}", help="Edit"):
+            if c5.button("✏️", key=f"edit_exp_{exp.id}", help="Edit"):
                 st.session_state.exp_edit_mode = True
                 st.session_state.exp_edit_id = exp.id
                 # Populate state
@@ -145,23 +154,9 @@ def render(dm: DataManager):
                 st.rerun()
 
             # Delete Button
-            if c5.button("🗑️", key=f"del_exp_{exp.id}", help="Delete"):
+            if c6.button("🗑️", key=f"del_exp_{exp.id}", help="Delete"):
                 dm.delete_expense(exp.id)
                 st.success("Deleted.")
                 st.rerun()
-    
-    st.divider()
-    
-    st.subheader("Recent Expenses History")
-    if expenses:
-        df = pd.DataFrame([e.__dict__ for e in expenses])
-        display_cols = ['date', 'name', 'amount', 'description', 'is_recurring', 'next_due_date']
-        cols = [c for c in display_cols if c in df.columns]
-        
-        df['date'] = pd.to_datetime(df['date'])
-        df = df.sort_values(by='date', ascending=False)
-        df['date'] = df['date'].dt.strftime('%Y-%m-%d')
-        
-        st.dataframe(df[cols], use_container_width=True)
     else:
         st.info("No expenses recorded yet.")

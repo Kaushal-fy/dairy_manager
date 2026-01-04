@@ -22,6 +22,8 @@ class DataManager(ABC):
     def add_buyer(self, buyer: Buyer) -> None: pass
     @abstractmethod
     def update_buyer(self, buyer_name: str, new_rate: float) -> None: pass
+    @abstractmethod
+    def delete_buyer(self, buyer_name: str) -> None: pass
 
     @abstractmethod
     def get_milk_sales(self) -> List[MilkSale]: pass
@@ -126,6 +128,11 @@ class LocalJSONBackend(DataManager):
         for b in data:
             if b['name'] == buyer_name:
                 b['default_rate'] = new_rate
+        self._write_json("buyers", data)
+    
+    def delete_buyer(self, buyer_name: str) -> None:
+        data = self._read_json("buyers")
+        data = [d for d in data if d.get('name') != buyer_name]
         self._write_json("buyers", data)
 
     # Milk Sales

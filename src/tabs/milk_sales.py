@@ -98,26 +98,28 @@ def render(dm: DataManager):
                 st.session_state.dy_notes = ""
                 st.rerun()
 
-    # List Today's Yields for Edit/Delete
-    if yield_records:
-        st.caption("Today's Records:")
-        for y in yield_records:
-            c1, c2, c3, c4, c5 = st.columns([2, 1, 2, 0.5, 0.5])
-            c1.write(y.date) # Redundant if all today?
-            c2.write(f"{y.quantity} L")
-            c3.write(y.notes)
+    # Expandable History for Daily Yields
+    with st.expander("Production History (All Time)"):
+        # Sort by Date Descending
+        all_daily_yields_sorted = sorted(all_daily_yields, key=lambda x: x.date, reverse=True)
+        if all_daily_yields_sorted:
+            # Table Header
+            c1, c2, c3, c4 = st.columns([2, 2, 3, 1])
+            c1.markdown("**Date**")
+            c2.markdown("**Qty (L)**")
+            c3.markdown("**Notes**")
+            c4.markdown("**Action**")
             
-            if c4.button("✏️", key=f"ed_y_{y.id}"):
-                st.session_state.dy_edit_mode = True
-                st.session_state.dy_edit_id = y.id
-                st.session_state.dy_date = datetime.fromisoformat(y.date).date()
-                st.session_state.dy_qty = y.quantity
-                st.session_state.dy_notes = y.notes
-                st.rerun()
-                
-            if c5.button("🗑️", key=f"del_y_{y.id}"):
-                dm.delete_daily_yield(y.id)
-                st.rerun()
+            for y in all_daily_yields_sorted:
+                c1, c2, c3, c4 = st.columns([2, 2, 3, 1])
+                c1.write(y.date)
+                c2.write(f"{y.quantity}")
+                c3.write(y.notes)
+                if c4.button("🗑️", key=f"del_y_hist_{y.id}"):
+                    dm.delete_daily_yield(y.id)
+                    st.rerun()
+        else:
+            st.info("No records found.")
 
     st.divider()
 
@@ -127,16 +129,35 @@ def render(dm: DataManager):
         b_name_input = st.text_input("Buyer Name", key="new_buyer_name")
         b_rate_input = st.number_input("Default Rate/L", min_value=0.0, step=0.5, key="new_buyer_rate")
         
-        if st.button("Add/Update Buyer"):
-            if b_name_input and b_rate_input > 0:
-                existing = [b for b in dm.get_buyers() if b.name == b_name_input]
-                if existing:
-                    dm.update_buyer(b_name_input, b_rate_input)
-                    st.success(f"Updated rate for {b_name_input}")
+        col_act1, col_act2 = st.columns(2)
+        with col_act1:
+            if st.button("Add/Update Buyer"):
+                if b_name_input and b_rate_input > 0:
+                    existing = [b for b in dm.get_buyers() if b.name == b_name_input]
+                    if existing:
+                        dm.update_buyer(b_name_input, b_rate_input)
+                        st.success(f"Updated rate for {b_name_input}")
+                    else:
+                        dm.add_buyer(Buyer(name=b_name_input, default_rate=b_rate_input))
+                        st.success(f"Added buyer {b_name_input}")
+                    st.rerun()
                 else:
-                    dm.add_buyer(Buyer(name=b_name_input, default_rate=b_rate_input))
-                    st.success(f"Added buyer {b_name_input}")
-                st.rerun()
+                    st.error("Name and Rate required.")
+        
+        st.markdown("---")
+        st.subheader("Existing Buyers")
+        buyers = dm.get_buyers()
+        if buyers:
+            for b in buyers:
+                c1, c2, c3 = st.columns([3, 2, 1])
+                c1.write(b.name)
+                c2.write(f"₹{b.default_rate}/L")
+                if c3.button("Delete", key=f"del_buyer_{b.name}"):
+                    dm.delete_buyer(b.name)
+                    st.success(f"Deleted {b.name}")
+                    st.rerun()
+        else:
+            st.info("No buyers added.")
 
     st.divider()
 
@@ -163,42 +184,28 @@ def render(dm: DataManager):
     with tab1:
         st.subheader("Record Milk Sale")
         
-        # If not editing, let user select buyer to get default rate
-        # If editing, buyer is fixed to the record being edited (or selectable)
-        
-        # UI Strategy:
-        # Use session state values for all inputs.
-        
         if not st.session_state.sale_edit_mode:
             # Normal Flow
             sel_buyer = st.selectbox("Select Buyer", buyer_names, key="s_buyer_sel")
-            # Update default rate if changed and not manually set? 
-            # This is tricky with state. Simple approach:
-            # Just let user enter data.
             current_buyer = next((b for b in buyers if b.name == sel_buyer), None)
             def_rate = current_buyer.default_rate if current_buyer else 0.0
         else:
             # Edit Flow
-            # Pre-select buyer in selectbox
             try:
                 b_idx = buyer_names.index(st.session_state.sale_buyer)
             except: b_idx = 0
             sel_buyer = st.selectbox("Select Buyer", buyer_names, index=b_idx, key="s_buyer_sel_edit")
-            def_rate = st.session_state.sale_rate # Keep existing rate
+            def_rate = st.session_state.sale_rate 
             
         with st.form("sale_form"):
             col1, col2 = st.columns(2)
             with col1:
-                # If editing, use stored date. Else today.
                 d_val = st.session_state.sale_date if st.session_state.sale_edit_mode else date.today()
                 s_date = st.date_input("Date", value=d_val)
-                
-                # If editing, use stored qty.
                 q_val = st.session_state.sale_qty if st.session_state.sale_edit_mode else 0.0
                 s_qty = st.number_input("Quantity (Litres)", min_value=0.0, step=0.1, value=float(q_val))
             
             with col2:
-                # If editing, use stored rate. Else default.
                 r_val = def_rate
                 s_rate = st.number_input("Rate (INR/L)", value=float(r_val), step=0.5)
             
@@ -240,33 +247,31 @@ def render(dm: DataManager):
                 st.session_state.sale_qty = 0.0
                 st.rerun()
 
-        # List Today's Sales
-        if sales_today:
-            st.caption("Today's Sales:")
-            for s in sales_today:
-                c1, c2, c3, c4, c5 = st.columns([2, 1, 1, 0.5, 0.5])
-                c1.write(s.buyer_name)
-                c2.write(f"{s.quantity}L")
-                c3.write(f"₹{s.total_amount}")
+        # Expandable History for Sales
+        with st.expander("Sales History (All Time)"):
+            all_sales_sorted = sorted(all_sales, key=lambda x: x.date, reverse=True)
+            if all_sales_sorted:
+                c1, c2, c3, c4, c5 = st.columns([2, 3, 2, 2, 1])
+                c1.markdown("**Date**")
+                c2.markdown("**Buyer**")
+                c3.markdown("**Qty**")
+                c4.markdown("**Total**")
+                c5.markdown("**Del**")
                 
-                if c4.button("✏️", key=f"ed_s_{s.id}"):
-                    st.session_state.sale_edit_mode = True
-                    st.session_state.sale_edit_id = s.id
-                    st.session_state.sale_date = datetime.fromisoformat(s.date).date()
-                    st.session_state.sale_buyer = s.buyer_name
-                    st.session_state.sale_qty = s.quantity
-                    st.session_state.sale_rate = s.rate
-                    st.rerun()
-                
-                if c5.button("🗑️", key=f"del_s_{s.id}"):
-                    dm.delete_milk_sale(s.id)
-                    st.rerun()
+                for s in all_sales_sorted:
+                    c1, c2, c3, c4, c5 = st.columns([2, 3, 2, 2, 1])
+                    c1.write(s.date)
+                    c2.write(s.buyer_name)
+                    c3.write(f"{s.quantity}L")
+                    c4.write(f"₹{s.total_amount}")
+                    if c5.button("🗑️", key=f"del_s_hist_{s.id}"):
+                        dm.delete_milk_sale(s.id)
+                        st.rerun()
+            else:
+                st.info("No records.")
 
     with tab2:
         st.subheader("Record Payment")
-        # Skipping Edit/Delete for payments to save time/space as user didn't explicitly ask for payments edit, 
-        # but broadly "add entry... modify". Assuming focus is on Expense/Milk Prod/Sale.
-        # Minimal implementation: Add simple form.
         p_buyer = st.selectbox("Buyer", buyer_names, key="pay_buyer_select")
         with st.form("pay_form"):
             col1, col2 = st.columns(2)
@@ -283,8 +288,6 @@ def render(dm: DataManager):
 
     with tab3:
         st.subheader("Ledger")
-        # ... (Existing Ledger Logic) ...
-        # Copying minimal ledger logic for completeness
         summary_data = []
         all_sales = dm.get_milk_sales()
         all_payments = dm.get_payments()
