@@ -48,30 +48,30 @@ def render(dm: DataManager):
     if 'dy_notes' not in st.session_state: st.session_state.dy_notes = ""
 
     with st.expander("Record Production", expanded=True):
-        with st.form("daily_yield_form", clear_on_submit=False): # Must be False to keep values during edit
+        with st.form("daily_yield_form", clear_on_submit=False): 
             col1, col2 = st.columns(2)
             with col1:
-                # Use widget keys linked to session state? 
-                # st.date_input doesn't sync bidirectional easily inside form without rerun.
-                # Better to use values from state.
-                d_val = st.date_input("Date", value=st.session_state.dy_date)
+                d_val = st.session_state.dy_date if st.session_state.dy_edit_mode else date.today()
+                dy_date = st.date_input("Date", value=d_val)
             with col2:
-                q_val = st.number_input("Quantity (Litres)", min_value=0.0, step=0.1, value=float(st.session_state.dy_qty))
+                q_val = st.session_state.dy_qty if st.session_state.dy_edit_mode else 0.0
+                dy_qty = st.number_input("Quantity (Litres)", min_value=0.0, step=0.1, value=float(q_val))
             
-            n_val = st.text_input("Notes", value=st.session_state.dy_notes)
+            n_val = st.session_state.dy_notes if st.session_state.dy_edit_mode else ""
+            dy_notes = st.text_input("Notes", value=n_val)
             
             btn_txt = "Update Record" if st.session_state.dy_edit_mode else "Record Production"
             submitted = st.form_submit_button(btn_txt)
             
             if submitted:
-                if q_val > 0:
+                if dy_qty > 0:
                     new_id = st.session_state.dy_edit_id if st.session_state.dy_edit_mode else str(uuid.uuid4())
                     
                     new_yield = DailyYield(
                         id=new_id,
-                        date=d_val.isoformat(),
-                        quantity=q_val,
-                        notes=n_val
+                        date=dy_date.isoformat(),
+                        quantity=dy_qty,
+                        notes=dy_notes
                     )
                     
                     if st.session_state.dy_edit_mode:
@@ -81,7 +81,6 @@ def render(dm: DataManager):
                         dm.add_daily_yield(new_yield)
                         st.success("Recorded.")
                     
-                    # Reset
                     st.session_state.dy_edit_mode = False
                     st.session_state.dy_edit_id = None
                     st.session_state.dy_qty = 0.0
@@ -98,24 +97,30 @@ def render(dm: DataManager):
                 st.session_state.dy_notes = ""
                 st.rerun()
 
-    # Expandable History for Daily Yields
+    # Expandable History for Daily Yields (With Edit)
     with st.expander("Production History (All Time)"):
-        # Sort by Date Descending
         all_daily_yields_sorted = sorted(all_daily_yields, key=lambda x: x.date, reverse=True)
         if all_daily_yields_sorted:
-            # Table Header
-            c1, c2, c3, c4 = st.columns([2, 2, 3, 1])
+            c1, c2, c3, c4, c5 = st.columns([2, 2, 3, 0.5, 0.5])
             c1.markdown("**Date**")
             c2.markdown("**Qty (L)**")
             c3.markdown("**Notes**")
-            c4.markdown("**Action**")
+            c4.markdown("**Ed**")
+            c5.markdown("**Del**")
             
             for y in all_daily_yields_sorted:
-                c1, c2, c3, c4 = st.columns([2, 2, 3, 1])
+                c1, c2, c3, c4, c5 = st.columns([2, 2, 3, 0.5, 0.5])
                 c1.write(y.date)
                 c2.write(f"{y.quantity}")
                 c3.write(y.notes)
-                if c4.button("🗑️", key=f"del_y_hist_{y.id}"):
+                if c4.button("✏️", key=f"ed_y_hist_{y.id}"):
+                    st.session_state.dy_edit_mode = True
+                    st.session_state.dy_edit_id = y.id
+                    st.session_state.dy_date = datetime.fromisoformat(y.date).date()
+                    st.session_state.dy_qty = y.quantity
+                    st.session_state.dy_notes = y.notes
+                    st.rerun()
+                if c5.button("🗑️", key=f"del_y_hist_{y.id}"):
                     dm.delete_daily_yield(y.id)
                     st.rerun()
         else:
@@ -129,20 +134,16 @@ def render(dm: DataManager):
         b_name_input = st.text_input("Buyer Name", key="new_buyer_name")
         b_rate_input = st.number_input("Default Rate/L", min_value=0.0, step=0.5, key="new_buyer_rate")
         
-        col_act1, col_act2 = st.columns(2)
-        with col_act1:
-            if st.button("Add/Update Buyer"):
-                if b_name_input and b_rate_input > 0:
-                    existing = [b for b in dm.get_buyers() if b.name == b_name_input]
-                    if existing:
-                        dm.update_buyer(b_name_input, b_rate_input)
-                        st.success(f"Updated rate for {b_name_input}")
-                    else:
-                        dm.add_buyer(Buyer(name=b_name_input, default_rate=b_rate_input))
-                        st.success(f"Added buyer {b_name_input}")
-                    st.rerun()
+        if st.button("Add/Update Buyer"):
+            if b_name_input and b_rate_input > 0:
+                existing = [b for b in dm.get_buyers() if b.name == b_name_input]
+                if existing:
+                    dm.update_buyer(b_name_input, b_rate_input)
+                    st.success(f"Updated rate for {b_name_input}")
                 else:
-                    st.error("Name and Rate required.")
+                    dm.add_buyer(Buyer(name=b_name_input, default_rate=b_rate_input))
+                    st.success(f"Added buyer {b_name_input}")
+                st.rerun()
         
         st.markdown("---")
         st.subheader("Existing Buyers")
@@ -156,8 +157,6 @@ def render(dm: DataManager):
                     dm.delete_buyer(b.name)
                     st.success(f"Deleted {b.name}")
                     st.rerun()
-        else:
-            st.info("No buyers added.")
 
     st.divider()
 
@@ -172,7 +171,6 @@ def render(dm: DataManager):
     # Init Sales Edit State
     if 'sale_edit_mode' not in st.session_state: st.session_state.sale_edit_mode = False
     if 'sale_edit_id' not in st.session_state: st.session_state.sale_edit_id = None
-    # We need separate variables to pre-fill the form
     if 'sale_date' not in st.session_state: st.session_state.sale_date = date.today()
     if 'sale_buyer' not in st.session_state: st.session_state.sale_buyer = buyer_names[0] if buyer_names else ""
     if 'sale_qty' not in st.session_state: st.session_state.sale_qty = 0.0
@@ -247,24 +245,33 @@ def render(dm: DataManager):
                 st.session_state.sale_qty = 0.0
                 st.rerun()
 
-        # Expandable History for Sales
+        # Sales History (With Edit)
         with st.expander("Sales History (All Time)"):
             all_sales_sorted = sorted(all_sales, key=lambda x: x.date, reverse=True)
             if all_sales_sorted:
-                c1, c2, c3, c4, c5 = st.columns([2, 3, 2, 2, 1])
+                c1, c2, c3, c4, c5, c6 = st.columns([2, 3, 2, 2, 0.5, 0.5])
                 c1.markdown("**Date**")
                 c2.markdown("**Buyer**")
                 c3.markdown("**Qty**")
                 c4.markdown("**Total**")
-                c5.markdown("**Del**")
+                c5.markdown("**Ed**")
+                c6.markdown("**Del**")
                 
                 for s in all_sales_sorted:
-                    c1, c2, c3, c4, c5 = st.columns([2, 3, 2, 2, 1])
+                    c1, c2, c3, c4, c5, c6 = st.columns([2, 3, 2, 2, 0.5, 0.5])
                     c1.write(s.date)
                     c2.write(s.buyer_name)
                     c3.write(f"{s.quantity}L")
                     c4.write(f"₹{s.total_amount}")
-                    if c5.button("🗑️", key=f"del_s_hist_{s.id}"):
+                    if c5.button("✏️", key=f"ed_s_hist_{s.id}"):
+                        st.session_state.sale_edit_mode = True
+                        st.session_state.sale_edit_id = s.id
+                        st.session_state.sale_date = datetime.fromisoformat(s.date).date()
+                        st.session_state.sale_buyer = s.buyer_name
+                        st.session_state.sale_qty = s.quantity
+                        st.session_state.sale_rate = s.rate
+                        st.rerun()
+                    if c6.button("🗑️", key=f"del_s_hist_{s.id}"):
                         dm.delete_milk_sale(s.id)
                         st.rerun()
             else:

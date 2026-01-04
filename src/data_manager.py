@@ -53,12 +53,18 @@ class DataManager(ABC):
     @abstractmethod
     def add_cow(self, cow: Cow) -> None: pass
     @abstractmethod
-    def update_cow(self, cow_id: str, data: Dict[str, Any]) -> None: pass
+    def update_cow(self, cow: Cow) -> None: pass
+    @abstractmethod
+    def delete_cow(self, cow_id: str) -> None: pass
 
     @abstractmethod
     def get_cow_events(self) -> List[CowEvent]: pass
     @abstractmethod
     def add_cow_event(self, event: CowEvent) -> None: pass
+    @abstractmethod
+    def update_cow_event(self, event: CowEvent) -> None: pass
+    @abstractmethod
+    def delete_cow_event(self, event_id: str) -> None: pass
 
 class LocalJSONBackend(DataManager):
     def __init__(self, data_dir: str = "local_data"):
@@ -202,11 +208,19 @@ class LocalJSONBackend(DataManager):
              data.append(cow.__dict__)
              self._write_json("cows", data)
     
-    def update_cow(self, cow_id: str, update_data: Dict[str, Any]) -> None:
+    def update_cow(self, cow: Cow) -> None:
         data = self._read_json("cows")
-        for c in data:
-            if c['name'] == cow_id or c.get('id') == cow_id:
-                 c.update(update_data)
+        for i, c in enumerate(data):
+            # Identifying by name/id since id is often name. 
+            # If id is unique UUID, better. Here model uses 'id' which might be name.
+            if c.get('id') == cow.id:
+                 data[i] = cow.__dict__
+                 break
+        self._write_json("cows", data)
+
+    def delete_cow(self, cow_id: str) -> None:
+        data = self._read_json("cows")
+        data = [c for c in data if c.get('id') != cow_id]
         self._write_json("cows", data)
 
     # Cow Events
@@ -217,4 +231,17 @@ class LocalJSONBackend(DataManager):
     def add_cow_event(self, event: CowEvent) -> None:
         data = self._read_json("cow_events")
         data.append(event.__dict__)
+        self._write_json("cow_events", data)
+
+    def update_cow_event(self, event: CowEvent) -> None:
+        data = self._read_json("cow_events")
+        for i, d in enumerate(data):
+            if d.get('id') == event.id:
+                data[i] = event.__dict__
+                break
+        self._write_json("cow_events", data)
+
+    def delete_cow_event(self, event_id: str) -> None:
+        data = self._read_json("cow_events")
+        data = [d for d in data if d.get('id') != event_id]
         self._write_json("cow_events", data)

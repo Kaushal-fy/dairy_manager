@@ -5,6 +5,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
 import json
+import time
 
 class GoogleSheetsBackend(DataManager):
     def __init__(self, credentials_info: Dict[str, Any], sheet_name: str = "DairyManagerDB"):
@@ -17,7 +18,9 @@ class GoogleSheetsBackend(DataManager):
         self.sheet_name = sheet_name
         self.spreadsheet = self._get_or_create_spreadsheet()
         
-        # Initialize worksheets
+        self._cache = {}
+        self.CACHE_TTL = 60
+        
         self.worksheets = {
             "expenses": self._get_or_create_worksheet("expenses", ["id", "date", "name", "description", "amount", "is_recurring", "recurrence_type", "next_due_date", "cow_id"]),
             "buyers": self._get_or_create_worksheet("buyers", ["id", "name", "default_rate"]),
@@ -35,7 +38,6 @@ class GoogleSheetsBackend(DataManager):
             try:
                 return self.client.create(self.sheet_name)
             except gspread.exceptions.APIError as e:
-                # Catch 403 or other creation errors
                 raise Exception(
                     f"Found credentials but failed to open or create sheet '{self.sheet_name}'. "
                     f"Error: {e}. "
@@ -45,8 +47,6 @@ class GoogleSheetsBackend(DataManager):
     def _get_or_create_worksheet(self, title: str, headers: List[str]):
         try:
             ws = self.spreadsheet.worksheet(title)
-            # Check if headers exist. If empty, add headers.
-            # Using get_values for first row is safer than get_all_records which fails on empty sheets.
             if not ws.get_values("A1:Z1"): 
                 ws.append_row(headers)
         except gspread.WorksheetNotFound:
@@ -55,27 +55,32 @@ class GoogleSheetsBackend(DataManager):
         return ws
 
     def _get_all_records(self, ws_name: str):
-        # Add safety check: If sheet is empty (only headers or less), return []
-        # get_all_records() can raise APIError if the sheet is malformed or empty range
+        now = time.time()
+        if ws_name in self._cache:
+            cached = self._cache[ws_name]
+            if now - cached['timestamp'] < self.CACHE_TTL:
+                return cached['data']
+        
         try:
-            return self.worksheets[ws_name].get_all_records()
+            records = self.worksheets[ws_name].get_all_records()
         except Exception:
-            # Fallback: manually read values and parse
-            # This handles cases where get_all_records might fail due to header mismatches or emptiness
             ws = self.worksheets[ws_name]
             rows = ws.get_all_values()
             if len(rows) < 2:
-                return []
-            
-            headers = rows[0]
-            records = []
-            for row in rows[1:]:
-                # Map headers to row values (zip)
-                # Ensure row has same length as headers (pad with empty string)
-                row_padded = row + [""] * (len(headers) - len(row))
-                record = dict(zip(headers, row_padded))
-                records.append(record)
-            return records
+                records = []
+            else:
+                headers = rows[0]
+                records = []
+                for row in rows[1:]:
+                    row_padded = row + [""] * (len(headers) - len(row))
+                    records.append(dict(zip(headers, row_padded)))
+        
+        self._cache[ws_name] = {'data': records, 'timestamp': now}
+        return records
+
+    def _invalidate_cache(self, ws_name: str):
+        if ws_name in self._cache:
+            del self._cache[ws_name]
 
     def _append_row(self, ws_name: str, data: Dict[str, Any], headers: List[str]):
         row = [data.get(h, "") for h in headers]
@@ -88,6 +93,7 @@ class GoogleSheetsBackend(DataManager):
             else:
                 processed_row.append(item)
         self.worksheets[ws_name].append_row(processed_row)
+        self._invalidate_cache(ws_name)
     
     def _delete_row_by_id(self, ws_name: str, record_id: str):
         ws = self.worksheets[ws_name]
@@ -95,6 +101,7 @@ class GoogleSheetsBackend(DataManager):
             cell = ws.find(record_id)
             if cell:
                 ws.delete_rows(cell.row)
+                self._invalidate_cache(ws_name)
         except gspread.CellNotFound:
             pass
 
@@ -117,6 +124,7 @@ class GoogleSheetsBackend(DataManager):
                 for i, c in enumerate(cell_list):
                     c.value = processed_row[i]
                 ws.update_cells(cell_list)
+                self._invalidate_cache(ws_name)
 
         except gspread.CellNotFound:
             pass
@@ -169,14 +177,15 @@ class GoogleSheetsBackend(DataManager):
         cell = ws.find(buyer_name)
         if cell:
             ws.update_cell(cell.row, 3, new_rate)
+            self._invalidate_cache("buyers")
     
     def delete_buyer(self, buyer_name: str) -> None:
-        # Assuming finding by name as that's how update works currently
         ws = self.worksheets["buyers"]
         try:
             cell = ws.find(buyer_name)
             if cell:
                 ws.delete_rows(cell.row)
+                self._invalidate_cache("buyers")
         except gspread.CellNotFound:
             pass
 
@@ -257,8 +266,12 @@ class GoogleSheetsBackend(DataManager):
         headers = ["id", "name", "breed", "notes", "bought_date", "bought_from", "calf_birth_date"]
         self._append_row("cows", cow.__dict__, headers)
     
-    def update_cow(self, cow_id: str, data: Dict[str, Any]) -> None:
-         pass
+    def update_cow(self, cow: Cow) -> None:
+        headers = ["id", "name", "breed", "notes", "bought_date", "bought_from", "calf_birth_date"]
+        self._update_row_by_id("cows", cow.id, cow.__dict__, headers)
+
+    def delete_cow(self, cow_id: str) -> None:
+        self._delete_row_by_id("cows", cow_id)
 
     # Cow Events
     def get_cow_events(self) -> List[CowEvent]:
@@ -277,3 +290,10 @@ class GoogleSheetsBackend(DataManager):
     def add_cow_event(self, event: CowEvent) -> None:
         headers = ["id", "date", "cow_id", "event_type", "value", "cost", "next_due_date", "notes"]
         self._append_row("cow_events", event.__dict__, headers)
+
+    def update_cow_event(self, event: CowEvent) -> None:
+        headers = ["id", "date", "cow_id", "event_type", "value", "cost", "next_due_date", "notes"]
+        self._update_row_by_id("cow_events", event.id, event.__dict__, headers)
+
+    def delete_cow_event(self, event_id: str) -> None:
+        self._delete_row_by_id("cow_events", event_id)
