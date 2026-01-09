@@ -116,8 +116,14 @@ def render(dm: DataManager):
             st.rerun()
             
         if c_head3.button("Delete Cow", key=f"del_cow_{selected_cow.id}"):
-            dm.delete_cow(selected_cow.id)
-            st.success("Deleted Cow.")
+            if st.session_state.get(f"confirm_del_cow_{selected_cow.id}", False):
+                dm.delete_cow(selected_cow.id)
+                st.success("Cow deleted!")
+                st.rerun()
+            else:
+                st.session_state[f"confirm_del_cow_{selected_cow.id}"] = True
+                st.warning("Click again to confirm deletion")
+                st.rerun()
             st.rerun()
 
         info_col1, info_col2, info_col3 = st.columns(3)
@@ -264,7 +270,13 @@ def render(dm: DataManager):
                     st.rerun()
                     
                 if c6.button("🗑️", key=f"del_cev_{ev.id}"):
-                    dm.delete_cow_event(ev.id)
-                    st.rerun()
+                    if st.session_state.get(f"confirm_del_event_{ev.id}", False):
+                        dm.delete_cow_event(ev.id)
+                        st.success("Cow event deleted!")
+                        st.rerun()
+                    else:
+                        st.session_state[f"confirm_del_event_{ev.id}"] = True
+                        st.warning("Click again to confirm deletion")
+                        st.rerun()
         else:
             st.info("No records found for this cow.")

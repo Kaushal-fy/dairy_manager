@@ -121,8 +121,14 @@ def render(dm: DataManager):
                     st.session_state.dy_notes = y.notes
                     st.rerun()
                 if c5.button("🗑️", key=f"del_y_hist_{y.id}"):
-                    dm.delete_daily_yield(y.id)
-                    st.rerun()
+                    if st.session_state.get(f"confirm_del_yield_{y.id}", False):
+                        dm.delete_daily_yield(y.id)
+                        st.success("Production record deleted!")
+                        st.rerun()
+                    else:
+                        st.session_state[f"confirm_del_yield_{y.id}"] = True
+                        st.warning("Click again to confirm deletion")
+                        st.rerun()
         else:
             st.info("No records found.")
 
@@ -149,14 +155,33 @@ def render(dm: DataManager):
         st.subheader("Existing Buyers")
         buyers = dm.get_buyers()
         if buyers:
+            c1, c2, c3, c4 = st.columns([3, 2, 0.5, 0.5])
+            c1.markdown("**Name**")
+            c2.markdown("**Rate/L**")
+            c3.markdown("**Ed**")
+            c4.markdown("**Del**")
+            
             for b in buyers:
-                c1, c2, c3 = st.columns([3, 2, 1])
+                c1, c2, c3, c4 = st.columns([3, 2, 0.5, 0.5])
                 c1.write(b.name)
-                c2.write(f"₹{b.default_rate}/L")
-                if c3.button("Delete", key=f"del_buyer_{b.name}"):
-                    dm.delete_buyer(b.name)
-                    st.success(f"Deleted {b.name}")
+                c2.write(f"₹{b.default_rate}")
+                
+                if c3.button("✏️", key=f"ed_buyer_{b.name}"):
+                    # Pre-populate the form with existing buyer data
+                    st.session_state.new_buyer_name = b.name
+                    st.session_state.new_buyer_rate = b.default_rate
+                    st.info(f"Editing {b.name} - update the form above")
                     st.rerun()
+                    
+                if c4.button("🗑️", key=f"del_buyer_{b.name}"):
+                    if st.session_state.get(f"confirm_del_buyer_{b.name}", False):
+                        dm.delete_buyer(b.name)
+                        st.success(f"Buyer {b.name} deleted!")
+                        st.rerun()
+                    else:
+                        st.session_state[f"confirm_del_buyer_{b.name}"] = True
+                        st.warning("Click again to confirm deletion")
+                        st.rerun()
 
     st.divider()
 
@@ -272,26 +297,131 @@ def render(dm: DataManager):
                         st.session_state.sale_rate = s.rate
                         st.rerun()
                     if c6.button("🗑️", key=f"del_s_hist_{s.id}"):
-                        dm.delete_milk_sale(s.id)
-                        st.rerun()
+                        if st.session_state.get(f"confirm_del_sale_{s.id}", False):
+                            dm.delete_milk_sale(s.id)
+                            st.success("Sale deleted!")
+                            st.rerun()
+                        else:
+                            st.session_state[f"confirm_del_sale_{s.id}"] = True
+                            st.warning("Click again to confirm deletion")
+                            st.rerun()
             else:
                 st.info("No records.")
 
     with tab2:
-        st.subheader("Record Payment")
-        p_buyer = st.selectbox("Buyer", buyer_names, key="pay_buyer_select")
-        with st.form("pay_form"):
-            col1, col2 = st.columns(2)
-            with col1:
-                p_date = st.date_input("Date", value=date.today())
-                p_type = st.radio("Type", ["Payment", "Advance"])
-            with col2:
-                p_amount = st.number_input("Amount", min_value=0.0, step=100.0)
-                p_desc = st.text_input("Notes")
-            if st.form_submit_button("Save"):
-                dm.add_payment(Payment(str(uuid.uuid4()), p_date.isoformat(), p_buyer, p_type, p_amount, p_desc))
-                st.success("Saved")
-                st.rerun()
+        st.subheader("Payments & Advances")
+        
+        # Init Payment Edit State
+        if 'pay_edit_mode' not in st.session_state: st.session_state.pay_edit_mode = False
+        if 'pay_edit_id' not in st.session_state: st.session_state.pay_edit_id = None
+        if 'pay_date' not in st.session_state: st.session_state.pay_date = date.today()
+        if 'pay_buyer' not in st.session_state: st.session_state.pay_buyer = buyer_names[0] if buyer_names else ""
+        if 'pay_type' not in st.session_state: st.session_state.pay_type = "Payment"
+        if 'pay_amount' not in st.session_state: st.session_state.pay_amount = 0.0
+        if 'pay_notes' not in st.session_state: st.session_state.pay_notes = ""
+
+        form_title = "Edit Payment" if st.session_state.pay_edit_mode else "Record Payment"
+        with st.expander(form_title, expanded=True):
+            if not st.session_state.pay_edit_mode:
+                p_buyer = st.selectbox("Buyer", buyer_names, key="pay_buyer_select")
+            else:
+                try:
+                    b_idx = buyer_names.index(st.session_state.pay_buyer)
+                except: b_idx = 0
+                p_buyer = st.selectbox("Buyer", buyer_names, index=b_idx, key="pay_buyer_select_edit")
+            
+            with st.form("pay_form"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    d_val = st.session_state.pay_date if st.session_state.pay_edit_mode else date.today()
+                    p_date = st.date_input("Date", value=d_val)
+                    t_val = st.session_state.pay_type if st.session_state.pay_edit_mode else "Payment"
+                    p_type = st.radio("Type", ["Payment", "Advance"], index=0 if t_val == "Payment" else 1)
+                with col2:
+                    a_val = st.session_state.pay_amount if st.session_state.pay_edit_mode else 0.0
+                    p_amount = st.number_input("Amount", min_value=0.0, step=100.0, value=float(a_val))
+                    n_val = st.session_state.pay_notes if st.session_state.pay_edit_mode else ""
+                    p_desc = st.text_input("Notes", value=n_val)
+                
+                btn_txt = "Update Payment" if st.session_state.pay_edit_mode else "Save Payment"
+                if st.form_submit_button(btn_txt):
+                    if p_amount > 0:
+                        new_id = st.session_state.pay_edit_id if st.session_state.pay_edit_mode else str(uuid.uuid4())
+                        
+                        payment = Payment(
+                            id=new_id,
+                            date=p_date.isoformat(),
+                            buyer_name=p_buyer,
+                            entry_type=p_type,
+                            amount=p_amount,
+                            notes=p_desc
+                        )
+                        
+                        if st.session_state.pay_edit_mode:
+                            dm.update_payment(payment)
+                            st.success("Payment updated!")
+                        else:
+                            dm.add_payment(payment)
+                            st.success("Payment saved!")
+                        
+                        # Reset state
+                        st.session_state.pay_edit_mode = False
+                        st.session_state.pay_edit_id = None
+                        st.session_state.pay_amount = 0.0
+                        st.session_state.pay_notes = ""
+                        st.rerun()
+                    else:
+                        st.error("Amount must be greater than 0")
+            
+            if st.session_state.pay_edit_mode:
+                if st.button("Cancel Edit", key="cancel_payment"):
+                    st.session_state.pay_edit_mode = False
+                    st.session_state.pay_edit_id = None
+                    st.session_state.pay_amount = 0.0
+                    st.session_state.pay_notes = ""
+                    st.rerun()
+
+        # Payment History with Edit/Delete
+        with st.expander("Payment History"):
+            all_payments = dm.get_payments()
+            if all_payments:
+                payments_sorted = sorted(all_payments, key=lambda x: x.date, reverse=True)
+                c1, c2, c3, c4, c5, c6, c7 = st.columns([2, 3, 2, 2, 3, 0.5, 0.5])
+                c1.markdown("**Date**")
+                c2.markdown("**Buyer**")
+                c3.markdown("**Type**")
+                c4.markdown("**Amount**")
+                c5.markdown("**Notes**")
+                c6.markdown("**Ed**")
+                c7.markdown("**Del**")
+                
+                for p in payments_sorted:
+                    c1, c2, c3, c4, c5, c6, c7 = st.columns([2, 3, 2, 2, 3, 0.5, 0.5])
+                    c1.write(p.date)
+                    c2.write(p.buyer_name)
+                    c3.write(p.entry_type)
+                    c4.write(f"₹{p.amount}")
+                    c5.write(p.notes or "")
+                    if c6.button("✏️", key=f"ed_pay_{p.id}"):
+                        st.session_state.pay_edit_mode = True
+                        st.session_state.pay_edit_id = p.id
+                        st.session_state.pay_date = datetime.fromisoformat(p.date).date()
+                        st.session_state.pay_buyer = p.buyer_name
+                        st.session_state.pay_type = p.entry_type
+                        st.session_state.pay_amount = p.amount
+                        st.session_state.pay_notes = p.notes or ""
+                        st.rerun()
+                    if c7.button("🗑️", key=f"del_pay_{p.id}"):
+                        if st.session_state.get(f"confirm_del_pay_{p.id}", False):
+                            dm.delete_payment(p.id)
+                            st.success("Payment deleted!")
+                            st.rerun()
+                        else:
+                            st.session_state[f"confirm_del_pay_{p.id}"] = True
+                            st.warning("Click again to confirm deletion")
+                            st.rerun()
+            else:
+                st.info("No payment records found.")
 
     with tab3:
         st.subheader("Ledger")

@@ -153,10 +153,15 @@ def render(dm: DataManager):
                     st.session_state.exp_next_due = datetime.fromisoformat(exp.next_due_date).date()
                 st.rerun()
 
-            # Delete Button
+            # Delete Button with confirmation
             if c6.button("🗑️", key=f"del_exp_{exp.id}", help="Delete"):
-                dm.delete_expense(exp.id)
-                st.success("Deleted.")
-                st.rerun()
+                if st.session_state.get(f"confirm_del_exp_{exp.id}", False):
+                    dm.delete_expense(exp.id)
+                    st.success("Expense deleted!")
+                    st.rerun()
+                else:
+                    st.session_state[f"confirm_del_exp_{exp.id}"] = True
+                    st.warning("Click again to confirm deletion")
+                    st.rerun()
     else:
         st.info("No expenses recorded yet.")

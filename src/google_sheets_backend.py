@@ -19,7 +19,7 @@ class GoogleSheetsBackend(DataManager):
         self.spreadsheet = self._get_or_create_spreadsheet()
         
         self._cache = {}
-        self.CACHE_TTL = 60
+        self.CACHE_TTL = 300  # Increase cache to 5 minutes to reduce API calls
         
         self.worksheets = {
             "expenses": self._get_or_create_worksheet("expenses", ["id", "date", "name", "description", "amount", "is_recurring", "recurrence_type", "next_due_date", "cow_id"]),
@@ -61,9 +61,10 @@ class GoogleSheetsBackend(DataManager):
             if now - cached['timestamp'] < self.CACHE_TTL:
                 return cached['data']
         
+        # Add rate limiting
+        time.sleep(0.1)  # 100ms delay between requests
+        
         try:
-            records = self.worksheets[ws_name].get_all_records()
-        except Exception:
             ws = self.worksheets[ws_name]
             rows = ws.get_all_values()
             if len(rows) < 2:
@@ -72,11 +73,39 @@ class GoogleSheetsBackend(DataManager):
                 headers = rows[0]
                 records = []
                 for row in rows[1:]:
+                    # Skip empty rows
+                    if not any(cell.strip() for cell in row if cell):
+                        continue
                     row_padded = row + [""] * (len(headers) - len(row))
                     records.append(dict(zip(headers, row_padded)))
+        except Exception as e:
+            print(f"Error reading {ws_name}: {e}")
+            records = []
         
         self._cache[ws_name] = {'data': records, 'timestamp': now}
         return records
+
+    def _batch_get_records(self, ws_names: List[str]):
+        """Get multiple worksheets in one batch to reduce API calls"""
+        results = {}
+        now = time.time()
+        
+        # Check which ones need refreshing
+        to_fetch = []
+        for ws_name in ws_names:
+            if ws_name in self._cache:
+                cached = self._cache[ws_name]
+                if now - cached['timestamp'] < self.CACHE_TTL:
+                    results[ws_name] = cached['data']
+                    continue
+            to_fetch.append(ws_name)
+        
+        # Fetch the ones that need updating
+        for ws_name in to_fetch:
+            results[ws_name] = self._get_all_records(ws_name)
+            time.sleep(0.1)  # Rate limiting
+        
+        return results
 
     def _invalidate_cache(self, ws_name: str):
         if ws_name in self._cache:
@@ -134,18 +163,34 @@ class GoogleSheetsBackend(DataManager):
         records = self._get_all_records("expenses")
         expenses = []
         for r in records:
-            is_rec = str(r.get('is_recurring', '')).lower() == 'true'
-            expenses.append(Expense(
-                id=str(r.get('id', '')),
-                date=r.get('date'),
-                name=r.get('name'),
-                description=r.get('description'),
-                amount=float(r.get('amount', 0)),
-                is_recurring=is_rec,
-                recurrence_type=r.get('recurrence_type'),
-                next_due_date=r.get('next_due_date'),
-                cow_id=r.get('cow_id')
-            ))
+            try:
+                # Validate required fields
+                if not r.get('id') or not r.get('date'):
+                    continue
+                
+                # Safe float conversion for amount
+                amount_str = str(r.get('amount', '0')).strip()
+                try:
+                    amount = float(amount_str) if amount_str else 0.0
+                except ValueError:
+                    print(f"Warning: Invalid amount '{amount_str}' in expense record, using 0.0")
+                    amount = 0.0
+                
+                is_rec = str(r.get('is_recurring', '')).lower() == 'true'
+                expenses.append(Expense(
+                    id=str(r.get('id', '')),
+                    date=r.get('date'),
+                    name=r.get('name', ''),
+                    description=r.get('description', ''),
+                    amount=amount,
+                    is_recurring=is_rec,
+                    recurrence_type=r.get('recurrence_type'),
+                    next_due_date=r.get('next_due_date'),
+                    cow_id=r.get('cow_id')
+                ))
+            except Exception as e:
+                print(f"Error parsing expense record: {e}, record: {r}")
+                continue
         return expenses
 
     def add_expense(self, expense: Expense) -> None:
@@ -236,18 +281,47 @@ class GoogleSheetsBackend(DataManager):
     # Payments
     def get_payments(self) -> List[Payment]:
         records = self._get_all_records("payments")
-        return [Payment(
-            id=str(r.get('id', '')),
-            date=r.get('date'),
-            buyer_name=r.get('buyer_name'),
-            entry_type=r.get('entry_type'),
-            amount=float(r.get('amount', 0)),
-            notes=r.get('notes')
-        ) for r in records]
+        payments = []
+        for r in records:
+            try:
+                # Validate required fields exist and are not empty
+                if not r.get('id') or not r.get('date'):
+                    continue
+                
+                # Safe float conversion for amount
+                amount_str = str(r.get('amount', '0')).strip()
+                if not amount_str or amount_str == '':
+                    amount = 0.0
+                else:
+                    try:
+                        amount = float(amount_str)
+                    except ValueError:
+                        print(f"Warning: Invalid amount '{amount_str}' in payment record, using 0.0")
+                        amount = 0.0
+                
+                payments.append(Payment(
+                    id=str(r.get('id', '')),
+                    date=r.get('date'),
+                    buyer_name=r.get('buyer_name', ''),
+                    entry_type=r.get('entry_type', 'Payment'),
+                    amount=amount,
+                    notes=r.get('notes', '')
+                ))
+            except Exception as e:
+                print(f"Error parsing payment record: {e}, record: {r}")
+                continue
+        return payments
 
     def add_payment(self, payment: Payment) -> None:
         headers = ["id", "date", "buyer_name", "entry_type", "amount", "notes"]
         self._append_row("payments", payment.__dict__, headers)
+
+    def update_payment(self, payment: Payment) -> None:
+        headers = ["id", "date", "buyer_name", "entry_type", "amount", "notes"]
+        self._update_row_by_id("payments", payment.id, payment.__dict__, headers)
+
+    def delete_payment(self, payment_id: str) -> None:
+        self._delete_row_by_id("payments", payment_id)
 
     # Cows
     def get_cows(self) -> List[Cow]:

@@ -47,6 +47,10 @@ class DataManager(ABC):
     def get_payments(self) -> List[Payment]: pass
     @abstractmethod
     def add_payment(self, payment: Payment) -> None: pass
+    @abstractmethod
+    def update_payment(self, payment: Payment) -> None: pass
+    @abstractmethod
+    def delete_payment(self, payment_id: str) -> None: pass
 
     @abstractmethod
     def get_cows(self) -> List[Cow]: pass
@@ -195,6 +199,19 @@ class LocalJSONBackend(DataManager):
     def add_payment(self, payment: Payment) -> None:
         data = self._read_json("payments")
         data.append(payment.__dict__)
+        self._write_json("payments", data)
+
+    def update_payment(self, payment: Payment) -> None:
+        data = self._read_json("payments")
+        for i, d in enumerate(data):
+            if d.get('id') == payment.id:
+                data[i] = payment.__dict__
+                break
+        self._write_json("payments", data)
+
+    def delete_payment(self, payment_id: str) -> None:
+        data = self._read_json("payments")
+        data = [d for d in data if d.get('id') != payment_id]
         self._write_json("payments", data)
 
     # Cows
