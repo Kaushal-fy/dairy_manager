@@ -240,24 +240,12 @@ class GoogleSheetsBackend(DataManager):
         sales = []
         for r in records:
             try:
-                record_id = str(r.get('id', '')).strip()
-                record_date = str(r.get('date', '')).strip()
-                
-                if not record_id or not record_date:
-                    continue
-                
-                # Validate date format
-                if len(record_date) > 10 or '-' not in record_date:
-                    continue
-                
-                try:
-                    datetime.fromisoformat(record_date)
-                except (ValueError, AttributeError):
+                if not r.get('id') or not r.get('date'):
                     continue
                 
                 sales.append(MilkSale(
-                    id=record_id,
-                    date=record_date,
+                    id=str(r.get('id', '')),
+                    date=r.get('date', ''),
                     buyer_name=r.get('buyer_name', ''),
                     quantity=float(r.get('quantity', 0)),
                     rate=float(r.get('rate', 0)),
@@ -285,24 +273,12 @@ class GoogleSheetsBackend(DataManager):
         yields = []
         for r in records:
             try:
-                record_id = str(r.get('id', '')).strip()
-                record_date = str(r.get('date', '')).strip()
-                
-                if not record_id or not record_date:
-                    continue
-                
-                # Validate date format
-                if len(record_date) > 10 or '-' not in record_date:
-                    continue
-                
-                try:
-                    datetime.fromisoformat(record_date)
-                except (ValueError, AttributeError):
+                if not r.get('id') or not r.get('date'):
                     continue
                 
                 yields.append(DailyYield(
-                    id=record_id,
-                    date=record_date,
+                    id=str(r.get('id', '')),
+                    date=r.get('date', ''),
                     quantity=float(r.get('quantity', 0)),
                     notes=r.get('notes', '')
                 ))
@@ -329,22 +305,7 @@ class GoogleSheetsBackend(DataManager):
         for r in records:
             try:
                 # Validate required fields exist and are not empty
-                record_id = str(r.get('id', '')).strip()
-                record_date = str(r.get('date', '')).strip()
-                
-                if not record_id or not record_date:
-                    continue
-                
-                # Validate date format - skip if it's a UUID or invalid
-                if len(record_date) > 10 or '-' not in record_date:
-                    print(f"Skipping payment record with invalid date: {record_date}")
-                    continue
-                
-                try:
-                    # Test if date is valid
-                    datetime.fromisoformat(record_date)
-                except (ValueError, AttributeError):
-                    print(f"Skipping payment record with unparseable date: {record_date}")
+                if not r.get('id') or not r.get('date'):
                     continue
                 
                 # Safe float conversion for amount
@@ -355,12 +316,12 @@ class GoogleSheetsBackend(DataManager):
                     try:
                         amount = float(amount_str)
                     except ValueError:
-                        print(f"Warning: Invalid amount '{amount_str}' in payment record, skipping record")
-                        continue
+                        print(f"Warning: Invalid amount '{amount_str}' in payment record, using 0.0")
+                        amount = 0.0
                 
                 payments.append(Payment(
-                    id=record_id,
-                    date=record_date,
+                    id=str(r.get('id', '')),
+                    date=r.get('date', ''),
                     buyer_name=r.get('buyer_name', ''),
                     entry_type=r.get('entry_type', 'Payment'),
                     amount=amount,
@@ -412,24 +373,12 @@ class GoogleSheetsBackend(DataManager):
         events = []
         for r in records:
             try:
-                record_id = str(r.get('id', '')).strip()
-                record_date = str(r.get('date', '')).strip()
-                
-                if not record_id or not record_date:
-                    continue
-                
-                # Validate date format
-                if len(record_date) > 10 or '-' not in record_date:
-                    continue
-                
-                try:
-                    datetime.fromisoformat(record_date)
-                except (ValueError, AttributeError):
+                if not r.get('id') or not r.get('date'):
                     continue
                 
                 events.append(CowEvent(
-                    id=record_id,
-                    date=record_date,
+                    id=str(r.get('id', '')),
+                    date=r.get('date', ''),
                     cow_id=r.get('cow_id', ''),
                     event_type=r.get('event_type', 'Other'),
                     value=r.get('value', ''),
