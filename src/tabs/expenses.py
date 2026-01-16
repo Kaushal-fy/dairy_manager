@@ -119,49 +119,42 @@ def render(dm: DataManager):
         # Sort desc by date
         expenses = sorted(expenses, key=lambda x: x.date, reverse=True)
         
-        # Use simple table layout with buttons
-        # Headers
-        c1, c2, c3, c4, c5, c6 = st.columns([2, 3, 2, 3, 1, 1])
-        c1.markdown("**Date**")
-        c2.markdown("**Name**")
-        c3.markdown("**Amount**")
-        c4.markdown("**Desc**")
-        c5.markdown("**Edit**")
-        c6.markdown("**Del**")
-        
-        # Pagination to avoid massive list? Streamlit handles rendering reasonably well up to hundreds of rows.
-        # For simplicity, show last 50.
+        # Mobile-friendly card layout
+        # Show last 50 for performance
         for exp in expenses[:50]:
-            c1, c2, c3, c4, c5, c6 = st.columns([2, 3, 2, 3, 1, 1])
-            c1.write(exp.date)
-            c2.write(exp.name)
-            c3.write(f"₹{exp.amount}")
-            c4.write(exp.description)
-            
-            # Edit Button
-            if c5.button("✏️", key=f"edit_exp_{exp.id}", help="Edit"):
-                st.session_state.exp_edit_mode = True
-                st.session_state.exp_edit_id = exp.id
-                # Populate state
-                st.session_state.exp_date = datetime.fromisoformat(exp.date).date()
-                st.session_state.exp_name = exp.name
-                st.session_state.exp_amount = exp.amount
-                st.session_state.exp_desc = exp.description
-                st.session_state.exp_is_recurring = exp.is_recurring
-                st.session_state.exp_rec_type = exp.recurrence_type
-                if exp.next_due_date:
-                    st.session_state.exp_next_due = datetime.fromisoformat(exp.next_due_date).date()
-                st.rerun()
+            with st.container():
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    st.markdown(f"**{exp.date}** | {exp.name}")
+                    st.caption(f"₹{exp.amount} | {exp.description}")
+                    if exp.is_recurring:
+                        st.caption(f"🔄 Recurring: {exp.recurrence_type} | Next: {exp.next_due_date or 'N/A'}")
+                with col2:
+                    # Edit Button
+                    if st.button("✏️", key=f"edit_exp_{exp.id}", help="Edit"):
+                        st.session_state.exp_edit_mode = True
+                        st.session_state.exp_edit_id = exp.id
+                        # Populate state
+                        st.session_state.exp_date = datetime.fromisoformat(exp.date).date()
+                        st.session_state.exp_name = exp.name
+                        st.session_state.exp_amount = exp.amount
+                        st.session_state.exp_desc = exp.description
+                        st.session_state.exp_is_recurring = exp.is_recurring
+                        st.session_state.exp_rec_type = exp.recurrence_type
+                        if exp.next_due_date:
+                            st.session_state.exp_next_due = datetime.fromisoformat(exp.next_due_date).date()
+                        st.rerun()
 
-            # Delete Button with confirmation
-            if c6.button("🗑️", key=f"del_exp_{exp.id}", help="Delete"):
-                if st.session_state.get(f"confirm_del_exp_{exp.id}", False):
-                    dm.delete_expense(exp.id)
-                    st.success("Expense deleted!")
-                    st.rerun()
-                else:
-                    st.session_state[f"confirm_del_exp_{exp.id}"] = True
-                    st.warning("Click again to confirm deletion")
-                    st.rerun()
+                    # Delete Button with confirmation
+                    if st.button("🗑️", key=f"del_exp_{exp.id}", help="Delete"):
+                        if st.session_state.get(f"confirm_del_exp_{exp.id}", False):
+                            dm.delete_expense(exp.id)
+                            st.success("Expense deleted!")
+                            st.rerun()
+                        else:
+                            st.session_state[f"confirm_del_exp_{exp.id}"] = True
+                            st.warning("Click again to confirm deletion")
+                            st.rerun()
+                st.divider()
     else:
         st.info("No expenses recorded yet.")

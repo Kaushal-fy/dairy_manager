@@ -241,42 +241,41 @@ def render(dm: DataManager):
             # Sort
             cow_events = sorted(cow_events, key=lambda x: x.date, reverse=True)
             
-            # Custom Table
-            c1, c2, c3, c4, c5, c6 = st.columns([2, 2, 2, 2, 0.5, 0.5])
-            c1.markdown("**Date**")
-            c2.markdown("**Type**")
-            c3.markdown("**Value**")
-            c4.markdown("**Notes**")
-            c5.markdown("**Ed**")
-            c6.markdown("**Del**")
-            
+            # Mobile-friendly card layout
             for ev in cow_events:
-                c1, c2, c3, c4, c5, c6 = st.columns([2, 2, 2, 2, 0.5, 0.5])
-                c1.write(ev.date)
-                c2.write(ev.event_type)
-                c3.write(ev.value)
-                c4.write(ev.notes)
-                
-                if c5.button("✏️", key=f"ed_cev_{ev.id}"):
-                    st.session_state.cev_edit_mode = True
-                    st.session_state.cev_edit_id = ev.id
-                    st.session_state.cev_date = datetime.fromisoformat(ev.date).date()
-                    st.session_state.cev_type = ev.event_type
-                    st.session_state.cev_val = ev.value
-                    st.session_state.cev_cost = ev.cost
-                    st.session_state.cev_notes = ev.notes
-                    if ev.next_due_date:
-                        st.session_state.cev_next_due = datetime.fromisoformat(ev.next_due_date).date()
-                    st.rerun()
-                    
-                if c6.button("🗑️", key=f"del_cev_{ev.id}"):
-                    if st.session_state.get(f"confirm_del_event_{ev.id}", False):
-                        dm.delete_cow_event(ev.id)
-                        st.success("Cow event deleted!")
-                        st.rerun()
-                    else:
-                        st.session_state[f"confirm_del_event_{ev.id}"] = True
-                        st.warning("Click again to confirm deletion")
-                        st.rerun()
+                with st.container():
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.markdown(f"**{ev.date}** | {ev.event_type}")
+                        st.caption(f"Value: {ev.value}")
+                        if ev.cost > 0:
+                            st.caption(f"Cost: ₹{ev.cost}")
+                        if ev.notes:
+                            st.caption(f"Notes: {ev.notes}")
+                        if ev.next_due_date:
+                            st.caption(f"Next Due: {ev.next_due_date}")
+                    with col2:
+                        if st.button("✏️", key=f"ed_cev_{ev.id}", help="Edit"):
+                            st.session_state.cev_edit_mode = True
+                            st.session_state.cev_edit_id = ev.id
+                            st.session_state.cev_date = datetime.fromisoformat(ev.date).date()
+                            st.session_state.cev_type = ev.event_type
+                            st.session_state.cev_val = ev.value
+                            st.session_state.cev_cost = ev.cost
+                            st.session_state.cev_notes = ev.notes
+                            if ev.next_due_date:
+                                st.session_state.cev_next_due = datetime.fromisoformat(ev.next_due_date).date()
+                            st.rerun()
+                        
+                        if st.button("🗑️", key=f"del_cev_{ev.id}", help="Delete"):
+                            if st.session_state.get(f"confirm_del_event_{ev.id}", False):
+                                dm.delete_cow_event(ev.id)
+                                st.success("Cow event deleted!")
+                                st.rerun()
+                            else:
+                                st.session_state[f"confirm_del_event_{ev.id}"] = True
+                                st.warning("Click again to confirm deletion")
+                                st.rerun()
+                    st.divider()
         else:
             st.info("No records found for this cow.")

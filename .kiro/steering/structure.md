@@ -31,6 +31,8 @@
 - **Tab Modules**: Each feature has its own module in `src/tabs/`
 - **Render Functions**: Each tab module exports a `render(dm: DataManager)` function
 - **Session State**: Backend instance stored in `st.session_state.data_manager`
+- **Mobile-Responsive Design**: Card-based layouts for data tables instead of column grids
+- **Action Buttons**: Edit (✏️) and Delete (🗑️) buttons in consistent positions
 
 ### File Naming Conventions
 - **Snake Case**: All Python files use snake_case
@@ -57,3 +59,29 @@ sys.path.insert(0, parent_dir)
 2. **DataManager** → routes to appropriate backend implementation
 3. **Backend** → handles persistence (JSON files or Google Sheets)
 4. **Models** → provide type safety and structure
+
+
+## UI Design Patterns
+
+### Mobile-Responsive Tables
+All data tables use a card-based layout for mobile compatibility:
+- **Container Pattern**: Each record wrapped in `st.container()`
+- **Two-Column Layout**: Main content (4 parts) + Actions (1 part)
+- **Visual Hierarchy**: Bold headers, caption details, dividers between records
+- **Action Buttons**: Vertically stacked edit/delete buttons in right column
+
+### Example Pattern:
+```python
+for item in items:
+    with st.container():
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.markdown(f"**{item.primary_field}** | {item.secondary}")
+            st.caption(f"Details: {item.details}")
+        with col2:
+            if st.button("✏️", key=f"edit_{item.id}"):
+                # Edit logic
+            if st.button("🗑️", key=f"del_{item.id}"):
+                # Delete logic
+        st.divider()
+```

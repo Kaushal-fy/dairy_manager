@@ -97,38 +97,35 @@ def render(dm: DataManager):
                 st.session_state.dy_notes = ""
                 st.rerun()
 
-    # Expandable History for Daily Yields (With Edit)
+    # Expandable History for Daily Yields (With Edit) - Mobile Friendly
     with st.expander("Production History (All Time)"):
         all_daily_yields_sorted = sorted(all_daily_yields, key=lambda x: x.date, reverse=True)
         if all_daily_yields_sorted:
-            c1, c2, c3, c4, c5 = st.columns([2, 2, 3, 0.5, 0.5])
-            c1.markdown("**Date**")
-            c2.markdown("**Qty (L)**")
-            c3.markdown("**Notes**")
-            c4.markdown("**Ed**")
-            c5.markdown("**Del**")
-            
             for y in all_daily_yields_sorted:
-                c1, c2, c3, c4, c5 = st.columns([2, 2, 3, 0.5, 0.5])
-                c1.write(y.date)
-                c2.write(f"{y.quantity}")
-                c3.write(y.notes)
-                if c4.button("✏️", key=f"ed_y_hist_{y.id}"):
-                    st.session_state.dy_edit_mode = True
-                    st.session_state.dy_edit_id = y.id
-                    st.session_state.dy_date = datetime.fromisoformat(y.date).date()
-                    st.session_state.dy_qty = y.quantity
-                    st.session_state.dy_notes = y.notes
-                    st.rerun()
-                if c5.button("🗑️", key=f"del_y_hist_{y.id}"):
-                    if st.session_state.get(f"confirm_del_yield_{y.id}", False):
-                        dm.delete_daily_yield(y.id)
-                        st.success("Production record deleted!")
-                        st.rerun()
-                    else:
-                        st.session_state[f"confirm_del_yield_{y.id}"] = True
-                        st.warning("Click again to confirm deletion")
-                        st.rerun()
+                with st.container():
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.markdown(f"**{y.date}** | {y.quantity}L")
+                        if y.notes:
+                            st.caption(f"Notes: {y.notes}")
+                    with col2:
+                        if st.button("✏️", key=f"ed_y_hist_{y.id}", help="Edit"):
+                            st.session_state.dy_edit_mode = True
+                            st.session_state.dy_edit_id = y.id
+                            st.session_state.dy_date = datetime.fromisoformat(y.date).date()
+                            st.session_state.dy_qty = y.quantity
+                            st.session_state.dy_notes = y.notes
+                            st.rerun()
+                        if st.button("🗑️", key=f"del_y_hist_{y.id}", help="Delete"):
+                            if st.session_state.get(f"confirm_del_yield_{y.id}", False):
+                                dm.delete_daily_yield(y.id)
+                                st.success("Production record deleted!")
+                                st.rerun()
+                            else:
+                                st.session_state[f"confirm_del_yield_{y.id}"] = True
+                                st.warning("Click again to confirm deletion")
+                                st.rerun()
+                    st.divider()
         else:
             st.info("No records found.")
 
@@ -155,33 +152,30 @@ def render(dm: DataManager):
         st.subheader("Existing Buyers")
         buyers = dm.get_buyers()
         if buyers:
-            c1, c2, c3, c4 = st.columns([3, 2, 0.5, 0.5])
-            c1.markdown("**Name**")
-            c2.markdown("**Rate/L**")
-            c3.markdown("**Ed**")
-            c4.markdown("**Del**")
-            
             for b in buyers:
-                c1, c2, c3, c4 = st.columns([3, 2, 0.5, 0.5])
-                c1.write(b.name)
-                c2.write(f"₹{b.default_rate}")
-                
-                if c3.button("✏️", key=f"ed_buyer_{b.name}"):
-                    # Pre-populate the form with existing buyer data
-                    st.session_state.new_buyer_name = b.name
-                    st.session_state.new_buyer_rate = b.default_rate
-                    st.info(f"Editing {b.name} - update the form above")
-                    st.rerun()
-                    
-                if c4.button("🗑️", key=f"del_buyer_{b.name}"):
-                    if st.session_state.get(f"confirm_del_buyer_{b.name}", False):
-                        dm.delete_buyer(b.name)
-                        st.success(f"Buyer {b.name} deleted!")
-                        st.rerun()
-                    else:
-                        st.session_state[f"confirm_del_buyer_{b.name}"] = True
-                        st.warning("Click again to confirm deletion")
-                        st.rerun()
+                with st.container():
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.markdown(f"**{b.name}**")
+                        st.caption(f"Rate: ₹{b.default_rate}/L")
+                    with col2:
+                        if st.button("✏️", key=f"ed_buyer_{b.name}", help="Edit"):
+                            # Pre-populate the form with existing buyer data
+                            st.session_state.new_buyer_name = b.name
+                            st.session_state.new_buyer_rate = b.default_rate
+                            st.info(f"Editing {b.name} - update the form above")
+                            st.rerun()
+                        
+                        if st.button("🗑️", key=f"del_buyer_{b.name}", help="Delete"):
+                            if st.session_state.get(f"confirm_del_buyer_{b.name}", False):
+                                dm.delete_buyer(b.name)
+                                st.success(f"Buyer {b.name} deleted!")
+                                st.rerun()
+                            else:
+                                st.session_state[f"confirm_del_buyer_{b.name}"] = True
+                                st.warning("Click again to confirm deletion")
+                                st.rerun()
+                    st.divider()
 
     st.divider()
 
@@ -270,41 +264,35 @@ def render(dm: DataManager):
                 st.session_state.sale_qty = 0.0
                 st.rerun()
 
-        # Sales History (With Edit)
+        # Sales History (With Edit) - Mobile Friendly
         with st.expander("Sales History (All Time)"):
             all_sales_sorted = sorted(all_sales, key=lambda x: x.date, reverse=True)
             if all_sales_sorted:
-                c1, c2, c3, c4, c5, c6 = st.columns([2, 3, 2, 2, 0.5, 0.5])
-                c1.markdown("**Date**")
-                c2.markdown("**Buyer**")
-                c3.markdown("**Qty**")
-                c4.markdown("**Total**")
-                c5.markdown("**Ed**")
-                c6.markdown("**Del**")
-                
                 for s in all_sales_sorted:
-                    c1, c2, c3, c4, c5, c6 = st.columns([2, 3, 2, 2, 0.5, 0.5])
-                    c1.write(s.date)
-                    c2.write(s.buyer_name)
-                    c3.write(f"{s.quantity}L")
-                    c4.write(f"₹{s.total_amount}")
-                    if c5.button("✏️", key=f"ed_s_hist_{s.id}"):
-                        st.session_state.sale_edit_mode = True
-                        st.session_state.sale_edit_id = s.id
-                        st.session_state.sale_date = datetime.fromisoformat(s.date).date()
-                        st.session_state.sale_buyer = s.buyer_name
-                        st.session_state.sale_qty = s.quantity
-                        st.session_state.sale_rate = s.rate
-                        st.rerun()
-                    if c6.button("🗑️", key=f"del_s_hist_{s.id}"):
-                        if st.session_state.get(f"confirm_del_sale_{s.id}", False):
-                            dm.delete_milk_sale(s.id)
-                            st.success("Sale deleted!")
-                            st.rerun()
-                        else:
-                            st.session_state[f"confirm_del_sale_{s.id}"] = True
-                            st.warning("Click again to confirm deletion")
-                            st.rerun()
+                    with st.container():
+                        col1, col2 = st.columns([4, 1])
+                        with col1:
+                            st.markdown(f"**{s.date}** | {s.buyer_name}")
+                            st.caption(f"Qty: {s.quantity}L @ ₹{s.rate}/L | Total: ₹{s.total_amount}")
+                        with col2:
+                            if st.button("✏️", key=f"ed_s_hist_{s.id}", help="Edit"):
+                                st.session_state.sale_edit_mode = True
+                                st.session_state.sale_edit_id = s.id
+                                st.session_state.sale_date = datetime.fromisoformat(s.date).date()
+                                st.session_state.sale_buyer = s.buyer_name
+                                st.session_state.sale_qty = s.quantity
+                                st.session_state.sale_rate = s.rate
+                                st.rerun()
+                            if st.button("🗑️", key=f"del_s_hist_{s.id}", help="Delete"):
+                                if st.session_state.get(f"confirm_del_sale_{s.id}", False):
+                                    dm.delete_milk_sale(s.id)
+                                    st.success("Sale deleted!")
+                                    st.rerun()
+                                else:
+                                    st.session_state[f"confirm_del_sale_{s.id}"] = True
+                                    st.warning("Click again to confirm deletion")
+                                    st.rerun()
+                        st.divider()
             else:
                 st.info("No records.")
 
@@ -381,45 +369,40 @@ def render(dm: DataManager):
                     st.session_state.pay_notes = ""
                     st.rerun()
 
-        # Payment History with Edit/Delete
+        # Payment History with Edit/Delete - Mobile Friendly
         with st.expander("Payment History"):
             all_payments = dm.get_payments()
             if all_payments:
                 payments_sorted = sorted(all_payments, key=lambda x: x.date, reverse=True)
-                c1, c2, c3, c4, c5, c6, c7 = st.columns([2, 3, 2, 2, 3, 0.5, 0.5])
-                c1.markdown("**Date**")
-                c2.markdown("**Buyer**")
-                c3.markdown("**Type**")
-                c4.markdown("**Amount**")
-                c5.markdown("**Notes**")
-                c6.markdown("**Ed**")
-                c7.markdown("**Del**")
                 
                 for p in payments_sorted:
-                    c1, c2, c3, c4, c5, c6, c7 = st.columns([2, 3, 2, 2, 3, 0.5, 0.5])
-                    c1.write(p.date)
-                    c2.write(p.buyer_name)
-                    c3.write(p.entry_type)
-                    c4.write(f"₹{p.amount}")
-                    c5.write(p.notes or "")
-                    if c6.button("✏️", key=f"ed_pay_{p.id}"):
-                        st.session_state.pay_edit_mode = True
-                        st.session_state.pay_edit_id = p.id
-                        st.session_state.pay_date = datetime.fromisoformat(p.date).date()
-                        st.session_state.pay_buyer = p.buyer_name
-                        st.session_state.pay_type = p.entry_type
-                        st.session_state.pay_amount = p.amount
-                        st.session_state.pay_notes = p.notes or ""
-                        st.rerun()
-                    if c7.button("🗑️", key=f"del_pay_{p.id}"):
-                        if st.session_state.get(f"confirm_del_pay_{p.id}", False):
-                            dm.delete_payment(p.id)
-                            st.success("Payment deleted!")
-                            st.rerun()
-                        else:
-                            st.session_state[f"confirm_del_pay_{p.id}"] = True
-                            st.warning("Click again to confirm deletion")
-                            st.rerun()
+                    with st.container():
+                        col1, col2 = st.columns([4, 1])
+                        with col1:
+                            st.markdown(f"**{p.date}** | {p.buyer_name}")
+                            st.caption(f"{p.entry_type}: ₹{p.amount}")
+                            if p.notes:
+                                st.caption(f"Notes: {p.notes}")
+                        with col2:
+                            if st.button("✏️", key=f"ed_pay_{p.id}", help="Edit"):
+                                st.session_state.pay_edit_mode = True
+                                st.session_state.pay_edit_id = p.id
+                                st.session_state.pay_date = datetime.fromisoformat(p.date).date()
+                                st.session_state.pay_buyer = p.buyer_name
+                                st.session_state.pay_type = p.entry_type
+                                st.session_state.pay_amount = p.amount
+                                st.session_state.pay_notes = p.notes or ""
+                                st.rerun()
+                            if st.button("🗑️", key=f"del_pay_{p.id}", help="Delete"):
+                                if st.session_state.get(f"confirm_del_pay_{p.id}", False):
+                                    dm.delete_payment(p.id)
+                                    st.success("Payment deleted!")
+                                    st.rerun()
+                                else:
+                                    st.session_state[f"confirm_del_pay_{p.id}"] = True
+                                    st.warning("Click again to confirm deletion")
+                                    st.rerun()
+                        st.divider()
             else:
                 st.info("No payment records found.")
 
