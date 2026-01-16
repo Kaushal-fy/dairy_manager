@@ -65,7 +65,7 @@ def render(dm: DataManager):
             # Ensure cols exist
             cols = [c for c in cols if c in df_daily.columns]
             
-            st.dataframe(df_daily[cols], use_container_width=True)
+            st.dataframe(df_daily[cols], width='stretch')
             
             csv = convert_df(df_daily[cols])
             st.download_button(
@@ -85,7 +85,7 @@ def render(dm: DataManager):
             df_daily['Month'] = pd.to_datetime(df_daily['Date']).dt.to_period('M').astype(str)
             df_monthly = df_daily.groupby('Month')[['Milk Revenue', 'Expenses', 'Milk (L)', 'Production (L)', 'Net Profit']].sum().reset_index()
             
-            st.dataframe(df_monthly, use_container_width=True)
+            st.dataframe(df_monthly, width='stretch')
             
             csv_m = convert_df(df_monthly)
             st.download_button(
@@ -106,7 +106,7 @@ def render(dm: DataManager):
             buyer_summary = df_sales.groupby('buyer_name')[['quantity', 'total_amount']].sum().reset_index()
             buyer_summary.columns = ['Buyer', 'Total Litres', 'Total Revenue']
             
-            st.dataframe(buyer_summary, use_container_width=True)
+            st.dataframe(buyer_summary, width='stretch')
             
             csv_b = convert_df(buyer_summary)
             st.download_button(
@@ -149,7 +149,7 @@ def render(dm: DataManager):
         if cow_stats:
             data = [{"Cow ID": k, **v} for k,v in cow_stats.items()]
             df_cows = pd.DataFrame(data)
-            st.dataframe(df_cows, use_container_width=True)
+            st.dataframe(df_cows, width='stretch')
             
             csv_c = convert_df(df_cows)
             st.download_button(

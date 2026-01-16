@@ -112,7 +112,10 @@ def render(dm: DataManager):
                         if st.button("✏️", key=f"ed_y_hist_{y.id}", help="Edit"):
                             st.session_state.dy_edit_mode = True
                             st.session_state.dy_edit_id = y.id
-                            st.session_state.dy_date = datetime.fromisoformat(y.date).date()
+                            try:
+                                st.session_state.dy_date = datetime.fromisoformat(y.date).date()
+                            except (ValueError, AttributeError):
+                                st.session_state.dy_date = date.today()
                             st.session_state.dy_qty = y.quantity
                             st.session_state.dy_notes = y.notes
                             st.rerun()
@@ -278,7 +281,10 @@ def render(dm: DataManager):
                             if st.button("✏️", key=f"ed_s_hist_{s.id}", help="Edit"):
                                 st.session_state.sale_edit_mode = True
                                 st.session_state.sale_edit_id = s.id
-                                st.session_state.sale_date = datetime.fromisoformat(s.date).date()
+                                try:
+                                    st.session_state.sale_date = datetime.fromisoformat(s.date).date()
+                                except (ValueError, AttributeError):
+                                    st.session_state.sale_date = date.today()
                                 st.session_state.sale_buyer = s.buyer_name
                                 st.session_state.sale_qty = s.quantity
                                 st.session_state.sale_rate = s.rate
@@ -387,7 +393,10 @@ def render(dm: DataManager):
                             if st.button("✏️", key=f"ed_pay_{p.id}", help="Edit"):
                                 st.session_state.pay_edit_mode = True
                                 st.session_state.pay_edit_id = p.id
-                                st.session_state.pay_date = datetime.fromisoformat(p.date).date()
+                                try:
+                                    st.session_state.pay_date = datetime.fromisoformat(p.date).date()
+                                except (ValueError, AttributeError):
+                                    st.session_state.pay_date = date.today()
                                 st.session_state.pay_buyer = p.buyer_name
                                 st.session_state.pay_type = p.entry_type
                                 st.session_state.pay_amount = p.amount
@@ -416,4 +425,4 @@ def render(dm: DataManager):
             b_payments = [p for p in all_payments if p.buyer_name == b.name]
             bal = sum(s.total_amount for s in b_sales) - sum(p.amount for p in b_payments)
             summary_data.append({"Buyer": b.name, "Balance": bal})
-        st.dataframe(pd.DataFrame(summary_data), use_container_width=True)
+        st.dataframe(pd.DataFrame(summary_data), width='stretch')

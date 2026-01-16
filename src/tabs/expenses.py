@@ -135,14 +135,20 @@ def render(dm: DataManager):
                         st.session_state.exp_edit_mode = True
                         st.session_state.exp_edit_id = exp.id
                         # Populate state
-                        st.session_state.exp_date = datetime.fromisoformat(exp.date).date()
+                        try:
+                            st.session_state.exp_date = datetime.fromisoformat(exp.date).date()
+                        except (ValueError, AttributeError):
+                            st.session_state.exp_date = date.today()
                         st.session_state.exp_name = exp.name
                         st.session_state.exp_amount = exp.amount
                         st.session_state.exp_desc = exp.description
                         st.session_state.exp_is_recurring = exp.is_recurring
                         st.session_state.exp_rec_type = exp.recurrence_type
                         if exp.next_due_date:
-                            st.session_state.exp_next_due = datetime.fromisoformat(exp.next_due_date).date()
+                            try:
+                                st.session_state.exp_next_due = datetime.fromisoformat(exp.next_due_date).date()
+                            except (ValueError, AttributeError):
+                                st.session_state.exp_next_due = None
                         st.rerun()
 
                     # Delete Button with confirmation

@@ -237,14 +237,36 @@ class GoogleSheetsBackend(DataManager):
     # Milk Sales
     def get_milk_sales(self) -> List[MilkSale]:
         records = self._get_all_records("milk_sales")
-        return [MilkSale(
-            id=str(r.get('id', '')),
-            date=r.get('date'),
-            buyer_name=r.get('buyer_name'),
-            quantity=float(r.get('quantity', 0)),
-            rate=float(r.get('rate', 0)),
-            total_amount=float(r.get('total_amount', 0))
-        ) for r in records]
+        sales = []
+        for r in records:
+            try:
+                record_id = str(r.get('id', '')).strip()
+                record_date = str(r.get('date', '')).strip()
+                
+                if not record_id or not record_date:
+                    continue
+                
+                # Validate date format
+                if len(record_date) > 10 or '-' not in record_date:
+                    continue
+                
+                try:
+                    datetime.fromisoformat(record_date)
+                except (ValueError, AttributeError):
+                    continue
+                
+                sales.append(MilkSale(
+                    id=record_id,
+                    date=record_date,
+                    buyer_name=r.get('buyer_name', ''),
+                    quantity=float(r.get('quantity', 0)),
+                    rate=float(r.get('rate', 0)),
+                    total_amount=float(r.get('total_amount', 0))
+                ))
+            except Exception as e:
+                print(f"Error parsing milk sale record: {e}")
+                continue
+        return sales
 
     def add_milk_sale(self, sale: MilkSale) -> None:
         headers = ["id", "date", "buyer_name", "quantity", "rate", "total_amount"]
@@ -260,12 +282,34 @@ class GoogleSheetsBackend(DataManager):
     # Daily Yields
     def get_daily_yields(self) -> List[DailyYield]:
         records = self._get_all_records("daily_yields")
-        return [DailyYield(
-            id=str(r.get('id', '')),
-            date=r.get('date'),
-            quantity=float(r.get('quantity', 0)),
-            notes=r.get('notes')
-        ) for r in records]
+        yields = []
+        for r in records:
+            try:
+                record_id = str(r.get('id', '')).strip()
+                record_date = str(r.get('date', '')).strip()
+                
+                if not record_id or not record_date:
+                    continue
+                
+                # Validate date format
+                if len(record_date) > 10 or '-' not in record_date:
+                    continue
+                
+                try:
+                    datetime.fromisoformat(record_date)
+                except (ValueError, AttributeError):
+                    continue
+                
+                yields.append(DailyYield(
+                    id=record_id,
+                    date=record_date,
+                    quantity=float(r.get('quantity', 0)),
+                    notes=r.get('notes', '')
+                ))
+            except Exception as e:
+                print(f"Error parsing daily yield record: {e}")
+                continue
+        return yields
 
     def add_daily_yield(self, yield_record: DailyYield) -> None:
         headers = ["id", "date", "quantity", "notes"]
@@ -285,7 +329,22 @@ class GoogleSheetsBackend(DataManager):
         for r in records:
             try:
                 # Validate required fields exist and are not empty
-                if not r.get('id') or not r.get('date'):
+                record_id = str(r.get('id', '')).strip()
+                record_date = str(r.get('date', '')).strip()
+                
+                if not record_id or not record_date:
+                    continue
+                
+                # Validate date format - skip if it's a UUID or invalid
+                if len(record_date) > 10 or '-' not in record_date:
+                    print(f"Skipping payment record with invalid date: {record_date}")
+                    continue
+                
+                try:
+                    # Test if date is valid
+                    datetime.fromisoformat(record_date)
+                except (ValueError, AttributeError):
+                    print(f"Skipping payment record with unparseable date: {record_date}")
                     continue
                 
                 # Safe float conversion for amount
@@ -296,12 +355,12 @@ class GoogleSheetsBackend(DataManager):
                     try:
                         amount = float(amount_str)
                     except ValueError:
-                        print(f"Warning: Invalid amount '{amount_str}' in payment record, using 0.0")
-                        amount = 0.0
+                        print(f"Warning: Invalid amount '{amount_str}' in payment record, skipping record")
+                        continue
                 
                 payments.append(Payment(
-                    id=str(r.get('id', '')),
-                    date=r.get('date'),
+                    id=record_id,
+                    date=record_date,
                     buyer_name=r.get('buyer_name', ''),
                     entry_type=r.get('entry_type', 'Payment'),
                     amount=amount,
@@ -350,16 +409,38 @@ class GoogleSheetsBackend(DataManager):
     # Cow Events
     def get_cow_events(self) -> List[CowEvent]:
         records = self._get_all_records("cow_events")
-        return [CowEvent(
-            id=str(r.get('id', '')),
-            date=r.get('date'),
-            cow_id=r.get('cow_id'),
-            event_type=r.get('event_type'),
-            value=r.get('value'),
-            cost=float(r.get('cost', 0)) if r.get('cost') else 0.0,
-            next_due_date=r.get('next_due_date'),
-            notes=r.get('notes')
-        ) for r in records]
+        events = []
+        for r in records:
+            try:
+                record_id = str(r.get('id', '')).strip()
+                record_date = str(r.get('date', '')).strip()
+                
+                if not record_id or not record_date:
+                    continue
+                
+                # Validate date format
+                if len(record_date) > 10 or '-' not in record_date:
+                    continue
+                
+                try:
+                    datetime.fromisoformat(record_date)
+                except (ValueError, AttributeError):
+                    continue
+                
+                events.append(CowEvent(
+                    id=record_id,
+                    date=record_date,
+                    cow_id=r.get('cow_id', ''),
+                    event_type=r.get('event_type', 'Other'),
+                    value=r.get('value', ''),
+                    cost=float(r.get('cost', 0)) if r.get('cost') else 0.0,
+                    next_due_date=r.get('next_due_date'),
+                    notes=r.get('notes', '')
+                ))
+            except Exception as e:
+                print(f"Error parsing cow event record: {e}")
+                continue
+        return events
 
     def add_cow_event(self, event: CowEvent) -> None:
         headers = ["id", "date", "cow_id", "event_type", "value", "cost", "next_due_date", "notes"]

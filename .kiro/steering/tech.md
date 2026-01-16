@@ -48,6 +48,7 @@ python -m unittest tests/test_v4.py
 - **Cloud Mode**: Google Sheets with predefined worksheet structure
 - **Caching**: 5-minute TTL cache for Google Sheets operations with rate limiting
 - **Error Handling**: Robust parsing with fallback values for malformed data
+- **Data Validation**: Date format validation, UUID detection, and corrupted record skipping
 - **API Optimization**: Batch operations and 100ms delays to prevent quota exceeded errors
 
 ## Troubleshooting
@@ -62,9 +63,17 @@ python -m unittest tests/test_v4.py
 **Data Parsing Errors**:
 - Added robust error handling for numeric conversions
 - Skip empty/malformed rows automatically
+- Validate date formats before parsing (reject UUIDs and invalid dates)
 - Fallback to default values for missing data
+- Skip records with corrupted or misaligned data
+
+**Date Validation**:
+- All date fields validated before parsing
+- Invalid dates (UUIDs, malformed strings) are skipped
+- UI edit operations use try-catch for date parsing with fallback to today's date
 
 **Common Fixes**:
 - Ensure Google Sheet headers match expected format
 - Verify service account has Editor permissions
 - Check for empty rows or misaligned data in sheets
+- Delete corrupted rows from Google Sheets if data appears misaligned

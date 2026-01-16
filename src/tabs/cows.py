@@ -111,8 +111,16 @@ def render(dm: DataManager):
             st.session_state.cow_breed = selected_cow.breed
             st.session_state.cow_notes = selected_cow.notes
             st.session_state.cow_bought_from = selected_cow.bought_from
-            if selected_cow.bought_date: st.session_state.cow_bought_date = datetime.fromisoformat(selected_cow.bought_date).date()
-            if selected_cow.calf_birth_date: st.session_state.cow_calf_born = datetime.fromisoformat(selected_cow.calf_birth_date).date()
+            if selected_cow.bought_date:
+                try:
+                    st.session_state.cow_bought_date = datetime.fromisoformat(selected_cow.bought_date).date()
+                except (ValueError, AttributeError):
+                    st.session_state.cow_bought_date = None
+            if selected_cow.calf_birth_date:
+                try:
+                    st.session_state.cow_calf_born = datetime.fromisoformat(selected_cow.calf_birth_date).date()
+                except (ValueError, AttributeError):
+                    st.session_state.cow_calf_born = None
             st.rerun()
             
         if c_head3.button("Delete Cow", key=f"del_cow_{selected_cow.id}"):
@@ -258,13 +266,19 @@ def render(dm: DataManager):
                         if st.button("✏️", key=f"ed_cev_{ev.id}", help="Edit"):
                             st.session_state.cev_edit_mode = True
                             st.session_state.cev_edit_id = ev.id
-                            st.session_state.cev_date = datetime.fromisoformat(ev.date).date()
+                            try:
+                                st.session_state.cev_date = datetime.fromisoformat(ev.date).date()
+                            except (ValueError, AttributeError):
+                                st.session_state.cev_date = date.today()
                             st.session_state.cev_type = ev.event_type
                             st.session_state.cev_val = ev.value
                             st.session_state.cev_cost = ev.cost
                             st.session_state.cev_notes = ev.notes
                             if ev.next_due_date:
-                                st.session_state.cev_next_due = datetime.fromisoformat(ev.next_due_date).date()
+                                try:
+                                    st.session_state.cev_next_due = datetime.fromisoformat(ev.next_due_date).date()
+                                except (ValueError, AttributeError):
+                                    st.session_state.cev_next_due = None
                             st.rerun()
                         
                         if st.button("🗑️", key=f"del_cev_{ev.id}", help="Delete"):
