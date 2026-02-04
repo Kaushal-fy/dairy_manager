@@ -1,6 +1,7 @@
 import streamlit as st
 from src.data_manager import DataManager
 from src.models import Expense
+from src.ui_components import EnhancedDataTable, RowNumberFormatter
 from datetime import date, datetime
 import pandas as pd
 import uuid
@@ -119,48 +120,43 @@ def render(dm: DataManager):
         # Sort desc by date
         expenses = sorted(expenses, key=lambda x: x.date, reverse=True)
         
-        # Mobile-friendly card layout
-        # Show last 50 for performance
-        for exp in expenses[:50]:
-            with st.container():
-                col1, col2 = st.columns([4, 1])
-                with col1:
-                    st.markdown(f"**{exp.date}** | {exp.name}")
-                    st.caption(f"₹{exp.amount} | {exp.description}")
-                    if exp.is_recurring:
-                        st.caption(f"🔄 Recurring: {exp.recurrence_type} | Next: {exp.next_due_date or 'N/A'}")
-                with col2:
-                    # Edit Button
-                    if st.button("✏️", key=f"edit_exp_{exp.id}", help="Edit"):
-                        st.session_state.exp_edit_mode = True
-                        st.session_state.exp_edit_id = exp.id
-                        # Populate state
-                        try:
-                            st.session_state.exp_date = datetime.fromisoformat(exp.date).date()
-                        except (ValueError, AttributeError):
-                            st.session_state.exp_date = date.today()
-                        st.session_state.exp_name = exp.name
-                        st.session_state.exp_amount = exp.amount
-                        st.session_state.exp_desc = exp.description
-                        st.session_state.exp_is_recurring = exp.is_recurring
-                        st.session_state.exp_rec_type = exp.recurrence_type
-                        if exp.next_due_date:
-                            try:
-                                st.session_state.exp_next_due = datetime.fromisoformat(exp.next_due_date).date()
-                            except (ValueError, AttributeError):
-                                st.session_state.exp_next_due = None
-                        st.rerun()
-
-                    # Delete Button with confirmation
-                    if st.button("🗑️", key=f"del_exp_{exp.id}", help="Delete"):
-                        if st.session_state.get(f"confirm_del_exp_{exp.id}", False):
-                            dm.delete_expense(exp.id)
-                            st.success("Expense deleted!")
-                            st.rerun()
-                        else:
-                            st.session_state[f"confirm_del_exp_{exp.id}"] = True
-                            st.warning("Click again to confirm deletion")
-                            st.rerun()
-                st.divider()
+        # Show last 50 for performance with enhanced data table
+        for i, exp in enumerate(expenses[:50]):
+            row_number = RowNumberFormatter.get_row_number(i)
+            
+            # Use EnhancedDataTable for proper formatting and button positioning
+            edit_clicked, delete_clicked = EnhancedDataTable.render_expense_row(exp, row_number)
+            
+            # Handle edit button click
+            if edit_clicked:
+                st.session_state.exp_edit_mode = True
+                st.session_state.exp_edit_id = exp.id
+                # Populate state
+                try:
+                    st.session_state.exp_date = datetime.fromisoformat(exp.date).date()
+                except (ValueError, AttributeError):
+                    st.session_state.exp_date = date.today()
+                st.session_state.exp_name = exp.name
+                st.session_state.exp_amount = exp.amount
+                st.session_state.exp_desc = exp.description
+                st.session_state.exp_is_recurring = exp.is_recurring
+                st.session_state.exp_rec_type = exp.recurrence_type
+                if exp.next_due_date:
+                    try:
+                        st.session_state.exp_next_due = datetime.fromisoformat(exp.next_due_date).date()
+                    except (ValueError, AttributeError):
+                        st.session_state.exp_next_due = None
+                st.rerun()
+            
+            # Handle delete button click with confirmation
+            if delete_clicked:
+                if st.session_state.get(f"confirm_del_exp_{exp.id}", False):
+                    dm.delete_expense(exp.id)
+                    st.success("Expense deleted!")
+                    st.rerun()
+                else:
+                    st.session_state[f"confirm_del_exp_{exp.id}"] = True
+                    st.warning("Click again to confirm deletion")
+                    st.rerun()
     else:
         st.info("No expenses recorded yet.")
