@@ -8,6 +8,14 @@ class CalendarView:
     """Interactive monthly calendar interface with visual indicators and date selection."""
     
     def __init__(self):
+        # Test if streamlit-calendar is working
+        try:
+            from streamlit_calendar import calendar as test_calendar
+            self.calendar_available = True
+        except ImportError:
+            self.calendar_available = False
+            st.error("streamlit-calendar package not available. Please install it with: pip install streamlit-calendar")
+        
         self.custom_css = """
         <style>
         /* Modern calendar styling with circular green dots */
@@ -99,6 +107,12 @@ class CalendarView:
                calendar_key: str = "calendar") -> Dict[str, Any]:
         """Render calendar with data points as green dot indicators."""
         
+        # Check if streamlit-calendar is available
+        if not self.calendar_available:
+            st.warning("Calendar component not available. Using fallback date picker.")
+            selected_date = st.date_input("Select Date", value=selected_month.date() if selected_month else date.today(), key=f"{calendar_key}_fallback")
+            return {"dateClick": {"date": selected_date.isoformat()}} if selected_date else {}
+        
         # Apply custom CSS for green dots
         st.markdown(self.custom_css, unsafe_allow_html=True)
         
@@ -131,15 +145,60 @@ class CalendarView:
             "displayEventEnd": False
         }
         
-        # Render calendar
-        calendar_result = calendar(
-            events=events,
-            options=calendar_options,
-            custom_css=self.custom_css,
-            key=calendar_key
-        )
+        # Debug information
+        st.write(f"📅 Calendar for {selected_month.strftime('%B %Y')}")
+        st.write(f"📊 Found {len(events)} events to display")
         
-        return calendar_result
+        # Show sample events for debugging
+        if events:
+            with st.expander("Debug: Calendar Events", expanded=False):
+                st.json(events[:3])  # Show first 3 events
+        
+        # Render calendar
+        try:
+            calendar_result = calendar(
+                events=events,
+                options=calendar_options,
+                custom_css=self.custom_css,
+                key=calendar_key
+            )
+            return calendar_result
+        except Exception as e:
+            st.error(f"Calendar rendering error: {str(e)}")
+            st.write("Using simple calendar fallback...")
+            
+            # Fallback: Use simple calendar
+            return self.render_simple_calendar(data_points, selected_month, calendar_key)
+    
+    @staticmethod
+    def apply_custom_styling() -> str:
+        """Return CSS for modern circular green dot indicators."""
+        return """
+        <style>
+        .fc-daygrid-event-dot {
+            background-color: #28a745 !important;
+            border-color: #28a745 !important;
+            border-radius: 50% !important;
+            width: 10px !important;
+            height: 10px !important;
+            margin: 0 auto !important;
+            display: block !important;
+        }
+        .fc-event-dot {
+            background-color: #28a745 !important;
+            border-color: #28a745 !important;
+            border-radius: 50% !important;
+            width: 10px !important;
+            height: 10px !important;
+        }
+        .fc-event-title {
+            display: none !important;
+        }
+        .fc-event-main {
+            display: none !important;
+        }
+        </style>
+        """
     
     def _convert_to_calendar_events(self, data_points: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Convert data points to calendar events with green dot styling."""
@@ -221,32 +280,47 @@ class CalendarView:
         
         return None
     
-    @staticmethod
-    def apply_custom_styling() -> str:
-        """Return CSS for modern circular green dot indicators."""
-        return """
-        <style>
-        .fc-daygrid-event-dot {
-            background-color: #28a745 !important;
-            border-color: #28a745 !important;
-            border-radius: 50% !important;
-            width: 10px !important;
-            height: 10px !important;
-            margin: 0 auto !important;
-            display: block !important;
-        }
-        .fc-event-dot {
-            background-color: #28a745 !important;
-            border-color: #28a745 !important;
-            border-radius: 50% !important;
-            width: 10px !important;
-            height: 10px !important;
-        }
-        .fc-event-title {
-            display: none !important;
-        }
-        .fc-event-main {
-            display: none !important;
-        }
-        </style>
-        """
+    def render_simple_calendar(self, data_points: List[Dict[str, Any]], selected_month: Optional[datetime] = None, 
+                              calendar_key: str = "calendar") -> Dict[str, Any]:
+        """Render a simple calendar view using Streamlit native components."""
+        
+        if selected_month is None:
+            selected_month = datetime.now()
+        
+        st.markdown(f"### 📅 {selected_month.strftime('%B %Y')}")
+        
+        # Create a simple grid calendar
+        import calendar as cal
+        
+        # Get calendar data
+        month_calendar = cal.monthcalendar(selected_month.year, selected_month.month)
+        
+        # Create date mapping for events
+        event_dates = set()
+        for point in data_points:
+            try:
+                point_date = datetime.fromisoformat(point['date']).date()
+                if point_date.year == selected_month.year and point_date.month == selected_month.month:
+                    event_dates.add(point_date.day)
+            except:
+                continue
+        
+        # Display calendar grid
+        st.markdown("**Sun Mon Tue Wed Thu Fri Sat**")
+        
+        selected_date = None
+        for week in month_calendar:
+            cols = st.columns(7)
+            for i, day in enumerate(week):
+                with cols[i]:
+                    if day == 0:
+                        st.write("")  # Empty cell
+                    else:
+                        # Check if this day has events
+                        has_events = day in event_dates
+                        button_text = f"**{day}** 🟢" if has_events else str(day)
+                        
+                        if st.button(button_text, key=f"{calendar_key}_day_{day}", width="content"):
+                            selected_date = f"{selected_month.year}-{selected_month.month:02d}-{day:02d}"
+        
+        return {"dateClick": {"date": selected_date}} if selected_date else {}

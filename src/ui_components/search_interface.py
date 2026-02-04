@@ -32,7 +32,7 @@ class SearchInterface:
         
         selected_buyer = None
         for buyer in filtered_buyers[:10]:  # Limit to top 10 results
-            if st.button(buyer, key=f"{key_prefix}_buyer_{buyer}", use_container_width=True):
+            if st.button(buyer, key=f"{key_prefix}_buyer_{buyer}", width="stretch"):
                 selected_buyer = buyer
                 # Store selected buyer in session state
                 st.session_state[f"{key_prefix}_selected_buyer"] = buyer
@@ -109,7 +109,7 @@ class SearchInterface:
                 st.write(f"{row_number}.")
             with col2:
                 if st.button(f"📊 {buyer}", key=f"{key_prefix}_select_{buyer}", 
-                           use_container_width=True, help="Click to view buyer details"):
+                           width="stretch", help="Click to view buyer details"):
                     selected_buyer = buyer
                     if on_buyer_click_callback:
                         on_buyer_click_callback(buyer)

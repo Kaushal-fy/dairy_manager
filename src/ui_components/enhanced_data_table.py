@@ -111,9 +111,9 @@ class EnhancedDataTable:
                 # Right-aligned action buttons with responsive design
                 button_col1, button_col2 = st.columns(2)
                 with button_col1:
-                    edit_clicked = st.button("✏️", key=f"edit_exp_{expense.id}", help="Edit", use_container_width=True)
+                    edit_clicked = st.button("✏️", key=f"edit_exp_{expense.id}", help="Edit", width="stretch")
                 with button_col2:
-                    delete_clicked = st.button("🗑️", key=f"del_exp_{expense.id}", help="Delete", use_container_width=True)
+                    delete_clicked = st.button("🗑️", key=f"del_exp_{expense.id}", help="Delete", width="stretch")
             
             st.divider()
             return edit_clicked, delete_clicked
@@ -174,9 +174,9 @@ class EnhancedDataTable:
                 # Right-aligned action buttons with responsive design
                 button_col1, button_col2 = st.columns(2)
                 with button_col1:
-                    edit_clicked = st.button("✏️", key=f"edit_{transaction_type}_{transaction.id}", help="Edit", use_container_width=True)
+                    edit_clicked = st.button("✏️", key=f"edit_{transaction_type}_{transaction.id}", help="Edit", width="stretch")
                 with button_col2:
-                    delete_clicked = st.button("🗑️", key=f"del_{transaction_type}_{transaction.id}", help="Delete", use_container_width=True)
+                    delete_clicked = st.button("🗑️", key=f"del_{transaction_type}_{transaction.id}", help="Delete", width="stretch")
             
             st.divider()
             return edit_clicked, delete_clicked
@@ -234,9 +234,9 @@ class EnhancedDataTable:
                 # Right-aligned action buttons with responsive design
                 button_col1, button_col2 = st.columns(2)
                 with button_col1:
-                    edit_clicked = st.button("✏️", key=f"edit_pay_{payment.id}", help="Edit", use_container_width=True)
+                    edit_clicked = st.button("✏️", key=f"edit_pay_{payment.id}", help="Edit", width="stretch")
                 with button_col2:
-                    delete_clicked = st.button("🗑️", key=f"del_pay_{payment.id}", help="Delete", use_container_width=True)
+                    delete_clicked = st.button("🗑️", key=f"del_pay_{payment.id}", help="Delete", width="stretch")
             
             st.divider()
             return edit_clicked, delete_clicked
@@ -287,16 +287,16 @@ class EnhancedDataTable:
             with col1:
                 # Clickable buyer name
                 name_clicked = st.button(f"📊 {buyer.name}", key=f"buyer_name_{buyer.name}", 
-                                       help="Click to view calendar", use_container_width=True)
+                                       help="Click to view calendar", width="stretch")
                 st.caption(f"Rate: ₹{buyer.default_rate}/L")
             
             with col2:
                 # Right-aligned action buttons with responsive design
                 button_col1, button_col2 = st.columns(2)
                 with button_col1:
-                    edit_clicked = st.button("✏️", key=f"edit_buyer_{buyer.name}", help="Edit", use_container_width=True)
+                    edit_clicked = st.button("✏️", key=f"edit_buyer_{buyer.name}", help="Edit", width="stretch")
                 with button_col2:
-                    delete_clicked = st.button("🗑️", key=f"del_buyer_{buyer.name}", help="Delete", use_container_width=True)
+                    delete_clicked = st.button("🗑️", key=f"del_buyer_{buyer.name}", help="Delete", width="stretch")
             
             st.divider()
             return edit_clicked, delete_clicked, name_clicked

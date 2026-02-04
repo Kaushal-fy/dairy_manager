@@ -133,7 +133,7 @@ class DateRangeSelector:
             file_name=filename,
             mime="text/csv",
             key=f"{key_prefix}_download",
-            use_container_width=True
+            width="stretch"
         )
     
     @staticmethod

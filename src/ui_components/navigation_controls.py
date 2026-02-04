@@ -17,7 +17,7 @@ class NavigationControls:
         col1, col2, col3 = st.columns([1, 2, 1])
         
         with col1:
-            if st.button("◀ Prev", key=f"{key_prefix}_prev_month", help="Previous Month", use_container_width=True):
+            if st.button("◀ Prev", key=f"{key_prefix}_prev_month", help="Previous Month", width="stretch"):
                 # Go to previous month
                 if current_date.month == 1:
                     new_date = current_date.replace(year=current_date.year - 1, month=12)
@@ -34,12 +34,12 @@ class NavigationControls:
                            f"{current_date.strftime('%B %Y')}</div>", 
                            unsafe_allow_html=True)
             with col2b:
-                if st.button("Today", key=f"{key_prefix}_today", help="Go to Current Month", use_container_width=True):
+                if st.button("Today", key=f"{key_prefix}_today", help="Go to Current Month", width="stretch"):
                     st.session_state[f"{key_prefix}_current_date"] = datetime.now()
                     st.rerun()
         
         with col3:
-            if st.button("Next ▶", key=f"{key_prefix}_next_month", help="Next Month", use_container_width=True):
+            if st.button("Next ▶", key=f"{key_prefix}_next_month", help="Next Month", width="stretch"):
                 # Go to next month
                 if current_date.month == 12:
                     new_date = current_date.replace(year=current_date.year + 1, month=1)

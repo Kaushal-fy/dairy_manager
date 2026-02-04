@@ -109,9 +109,9 @@ def render(dm: DataManager):
             # Right-aligned cow management buttons
             button_col1, button_col2 = st.columns(2)
             with button_col1:
-                edit_cow_clicked = st.button("✏️", key=f"ed_cow_{selected_cow.id}", help="Edit Cow", use_container_width=True)
+                edit_cow_clicked = st.button("✏️", key=f"ed_cow_{selected_cow.id}", help="Edit Cow", width="stretch")
             with button_col2:
-                delete_cow_clicked = st.button("🗑️", key=f"del_cow_{selected_cow.id}", help="Delete Cow", use_container_width=True)
+                delete_cow_clicked = st.button("🗑️", key=f"del_cow_{selected_cow.id}", help="Delete Cow", width="stretch")
         
         # Handle edit cow button
         if edit_cow_clicked:
@@ -276,9 +276,9 @@ def render(dm: DataManager):
                         # Right-aligned action buttons with responsive design
                         button_col1, button_col2 = st.columns(2)
                         with button_col1:
-                            edit_clicked = st.button("✏️", key=f"ed_cev_{ev.id}", help="Edit", use_container_width=True)
+                            edit_clicked = st.button("✏️", key=f"ed_cev_{ev.id}", help="Edit", width="stretch")
                         with button_col2:
-                            delete_clicked = st.button("🗑️", key=f"del_cev_{ev.id}", help="Delete", use_container_width=True)
+                            delete_clicked = st.button("🗑️", key=f"del_cev_{ev.id}", help="Delete", width="stretch")
                         
                         # Handle edit button click
                         if edit_clicked:
