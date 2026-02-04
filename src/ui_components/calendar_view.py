@@ -43,12 +43,32 @@ class CalendarView:
         # Add CSS for better mobile layout
         st.markdown("""
         <style>
+        /* Force 7-column grid layout on all devices */
+        .stColumns {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            width: 100% !important;
+        }
+        .stColumns > div {
+            flex: 0 0 14.285714% !important;
+            max-width: 14.285714% !important;
+            min-width: 14.285714% !important;
+            width: 14.285714% !important;
+            padding: 1px !important;
+            box-sizing: border-box !important;
+        }
+        .stColumns > div > div {
+            width: 100% !important;
+        }
+        
         .calendar-button button {
             width: 100% !important;
             min-height: 45px !important;
             font-size: 14px !important;
             border-radius: 8px !important;
-            margin: 2px !important;
+            margin: 1px !important;
+            padding: 4px 2px !important;
+            box-sizing: border-box !important;
         }
         .calendar-button.has-data button {
             background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%) !important;
@@ -62,11 +82,40 @@ class CalendarView:
             color: #e65100 !important;
             font-weight: 700 !important;
         }
+        
+        /* Mobile specific overrides */
         @media (max-width: 768px) {
-            .calendar-button button {
-                min-height: 40px !important;
-                font-size: 12px !important;
+            .stColumns {
+                display: flex !important;
+                flex-wrap: wrap !important;
             }
+            .stColumns > div {
+                flex: 0 0 14.285714% !important;
+                max-width: 14.285714% !important;
+                min-width: 14.285714% !important;
+                width: 14.285714% !important;
+            }
+            .calendar-button button {
+                min-height: 35px !important;
+                font-size: 10px !important;
+                padding: 2px 1px !important;
+            }
+        }
+        
+        /* Extra small mobile devices */
+        @media (max-width: 480px) {
+            .calendar-button button {
+                min-height: 30px !important;
+                font-size: 9px !important;
+                padding: 1px !important;
+            }
+        }
+        
+        /* Force container width */
+        .main .block-container {
+            max-width: 100% !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
         }
         </style>
         """, unsafe_allow_html=True)
