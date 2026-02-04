@@ -13,6 +13,46 @@ class CalendarView:
                calendar_key: str = "calendar") -> Dict[str, Any]:
         """Render calendar with data points as green dot indicators using native Streamlit."""
         
+        # Add mobile-responsive CSS for better calendar layout
+        st.markdown("""
+        <style>
+        /* Force calendar columns to stay in grid layout on mobile */
+        .stColumns {
+            display: flex !important;
+            flex-wrap: wrap !important;
+        }
+        .stColumns > div {
+            flex: 1 1 14.28% !important;
+            min-width: 14.28% !important;
+            max-width: 14.28% !important;
+            padding: 1px !important;
+        }
+        .stColumns > div > div {
+            width: 100% !important;
+        }
+        /* Calendar button styling */
+        .calendar-button button {
+            width: 100% !important;
+            min-height: 40px !important;
+            font-size: 12px !important;
+            padding: 4px 2px !important;
+            border-radius: 4px !important;
+        }
+        @media (max-width: 768px) {
+            .stColumns > div {
+                flex: 1 1 14.28% !important;
+                min-width: 14.28% !important;
+                max-width: 14.28% !important;
+            }
+            .calendar-button button {
+                min-height: 35px !important;
+                font-size: 10px !important;
+                padding: 2px 1px !important;
+            }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
         if selected_month is None:
             selected_month = datetime.now()
         
@@ -45,7 +85,8 @@ class CalendarView:
         cols = st.columns(7)
         for i, day in enumerate(days):
             with cols[i]:
-                st.markdown(f"**{day}**")
+                st.markdown(f"<div style='text-align: center; font-weight: bold; font-size: 12px;'>{day}</div>", 
+                           unsafe_allow_html=True)
         
         # Calendar grid
         selected_date = None
@@ -54,7 +95,7 @@ class CalendarView:
             for i, day in enumerate(week):
                 with cols[i]:
                     if day == 0:
-                        st.write("")  # Empty cell for days not in current month
+                        st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
                     else:
                         current_date = date(year, month, day)
                         
@@ -63,15 +104,17 @@ class CalendarView:
                         
                         # Create button with green dot indicator
                         if has_data:
-                            button_text = f"🟢 {day}"
+                            button_text = f"🟢{day}"
                             help_text = f"Click to view data for {current_date}"
                         else:
                             button_text = str(day)
                             help_text = f"No data for {current_date}"
                         
-                        # Make button clickable
+                        # Make button clickable with custom styling
+                        st.markdown('<div class="calendar-button">', unsafe_allow_html=True)
                         if st.button(button_text, key=f"{calendar_key}_{day}", help=help_text):
                             selected_date = current_date.isoformat()
+                        st.markdown('</div>', unsafe_allow_html=True)
         
         # Return result in expected format
         result = {}
