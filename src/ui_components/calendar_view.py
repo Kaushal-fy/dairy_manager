@@ -78,25 +78,30 @@ class CalendarView:
         
         # Show a simple visual calendar for reference (non-interactive)
         st.markdown("**Calendar View:**")
-        calendar_display = ""
         days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        calendar_display += " | ".join([f"**{day}**" for day in days]) + "\n"
-        calendar_display += "|" + "---|" * 7 + "\n"
         
+        # Header row
+        header_cols = st.columns(7)
+        for i, day in enumerate(days):
+            header_cols[i].markdown(f"**{day}**")
+        
+        # Calendar body
         for week in cal_data:
-            week_display = []
-            for day in week:
+            week_cols = st.columns(7)
+            for i, day in enumerate(week):
                 if day == 0:
-                    week_display.append(" ")
+                    week_cols[i].markdown(" ")
                 else:
                     current_date = date(year, month, day)
                     if current_date in dates_with_data:
-                        week_display.append(f"🟢**{day}**")
+                        if week_cols[i].button(
+                            f"🟢 {day}",
+                            key=f"{calendar_key}_grid_{day}",
+                            help=current_date.strftime('%B %d, %Y')
+                        ):
+                            selected_date = current_date.isoformat()
                     else:
-                        week_display.append(str(day))
-            calendar_display += " | ".join(week_display) + "\n"
-        
-        st.markdown(calendar_display)
+                        week_cols[i].markdown(str(day))
         
         # Return result in expected format
         result = {}
