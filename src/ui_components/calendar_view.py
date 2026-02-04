@@ -191,28 +191,18 @@ class CalendarView:
         # Display the calendar
         st.markdown(calendar_html, unsafe_allow_html=True)
         
-        # Create invisible Streamlit buttons for functionality
-        st.markdown('<div style="position: absolute; left: -9999px; opacity: 0;">', unsafe_allow_html=True)
-        
-        for day, current_date, has_data in clickable_days:
-            button_text = f"{'🟢 ' if has_data else ''}{day}"
-            if st.button(button_text, key=f"{calendar_key}_{day}"):
-                selected_date = current_date.isoformat()
-                # Store in session state for persistence
-                st.session_state[f"{calendar_key}_selected"] = selected_date
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Check if we have a stored selection
-        if f"{calendar_key}_selected" in st.session_state:
-            selected_date = st.session_state[f"{calendar_key}_selected"]
-            # Clear the selection after use
-            del st.session_state[f"{calendar_key}_selected"]
+        # Add a date picker below the calendar for selection
+        st.markdown("**Click a date above or use the date picker below:**")
+        selected_date_picker = st.date_input(
+            "Select Date", 
+            value=date.today(),
+            key=f"{calendar_key}_date_picker"
+        )
         
         # Return result in expected format
         result = {}
-        if selected_date:
-            result['dateClick'] = {'date': selected_date}
+        if selected_date_picker:
+            result['dateClick'] = {'date': selected_date_picker.isoformat()}
         
         return result
     
