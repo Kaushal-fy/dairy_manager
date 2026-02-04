@@ -15,6 +15,10 @@ from src.tabs import dashboard, expenses, milk_sales, cows, reports
 # Page Config
 st.set_page_config(page_title="Dairy Manager", layout="wide", page_icon="🐄")
 
+# Apply global button styles for consistent UI
+from src.ui_components.enhanced_data_table import EnhancedDataTable
+EnhancedDataTable.apply_global_button_styles()
+
 # --- Backend Initialization Logic ---
 def get_backend():
     creds_found = None

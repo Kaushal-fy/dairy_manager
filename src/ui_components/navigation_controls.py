@@ -13,10 +13,11 @@ class NavigationControls:
         if current_date is None:
             current_date = datetime.now()
         
-        col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+        # Create a more compact navigation layout
+        col1, col2, col3 = st.columns([1, 2, 1])
         
         with col1:
-            if st.button("◀", key=f"{key_prefix}_prev_month", help="Previous Month"):
+            if st.button("◀ Prev", key=f"{key_prefix}_prev_month", help="Previous Month", use_container_width=True):
                 # Go to previous month
                 if current_date.month == 1:
                     new_date = current_date.replace(year=current_date.year - 1, month=12)
@@ -26,35 +27,24 @@ class NavigationControls:
                 st.rerun()
         
         with col2:
-            if st.button("Today", key=f"{key_prefix}_today", help="Go to Current Month"):
-                st.session_state[f"{key_prefix}_current_date"] = datetime.now()
-                st.rerun()
+            # Display current month/year with today button
+            col2a, col2b = st.columns([2, 1])
+            with col2a:
+                st.markdown(f"<div style='text-align: center; font-weight: bold; padding: 8px; font-size: 16px;'>"
+                           f"{current_date.strftime('%B %Y')}</div>", 
+                           unsafe_allow_html=True)
+            with col2b:
+                if st.button("Today", key=f"{key_prefix}_today", help="Go to Current Month", use_container_width=True):
+                    st.session_state[f"{key_prefix}_current_date"] = datetime.now()
+                    st.rerun()
         
         with col3:
-            # Display current month/year
-            st.markdown(f"<div style='text-align: center; font-weight: bold; padding: 5px;'>"
-                       f"{current_date.strftime('%B %Y')}</div>", 
-                       unsafe_allow_html=True)
-        
-        with col4:
-            if st.button("▶", key=f"{key_prefix}_next_month", help="Next Month"):
+            if st.button("Next ▶", key=f"{key_prefix}_next_month", help="Next Month", use_container_width=True):
                 # Go to next month
                 if current_date.month == 12:
                     new_date = current_date.replace(year=current_date.year + 1, month=1)
                 else:
                     new_date = current_date.replace(month=current_date.month + 1)
-                st.session_state[f"{key_prefix}_current_date"] = new_date
-                st.rerun()
-        
-        with col5:
-            # Optional: Year selector
-            years = list(range(2020, 2030))
-            current_year_idx = years.index(current_date.year) if current_date.year in years else 0
-            selected_year = st.selectbox("", years, index=current_year_idx, 
-                                       key=f"{key_prefix}_year_select", label_visibility="collapsed")
-            
-            if selected_year != current_date.year:
-                new_date = current_date.replace(year=selected_year)
                 st.session_state[f"{key_prefix}_current_date"] = new_date
                 st.rerun()
         

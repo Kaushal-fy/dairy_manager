@@ -102,9 +102,19 @@ def render(dm: DataManager):
         selected_cow = next(c for c in all_cows if c.name == selected_cow_name)
         
         # Header with Edit/Delete
-        c_head1, c_head2, c_head3 = st.columns([4, 1, 1])
+        c_head1, c_head2 = st.columns([3, 1])
         c_head1.subheader(f"Managing: {selected_cow.name}")
-        if c_head2.button("Edit Cow", key=f"ed_cow_{selected_cow.id}"):
+        
+        with c_head2:
+            # Right-aligned cow management buttons
+            button_col1, button_col2 = st.columns(2)
+            with button_col1:
+                edit_cow_clicked = st.button("✏️", key=f"ed_cow_{selected_cow.id}", help="Edit Cow", use_container_width=True)
+            with button_col2:
+                delete_cow_clicked = st.button("🗑️", key=f"del_cow_{selected_cow.id}", help="Delete Cow", use_container_width=True)
+        
+        # Handle edit cow button
+        if edit_cow_clicked:
             st.session_state.cow_edit_mode = True
             st.session_state.cow_edit_id = selected_cow.id
             st.session_state.cow_name = selected_cow.name
@@ -123,7 +133,8 @@ def render(dm: DataManager):
                     st.session_state.cow_calf_born = None
             st.rerun()
             
-        if c_head3.button("Delete Cow", key=f"del_cow_{selected_cow.id}"):
+        # Handle delete cow button
+        if delete_cow_clicked:
             if st.session_state.get(f"confirm_del_cow_{selected_cow.id}", False):
                 dm.delete_cow(selected_cow.id)
                 st.success("Cow deleted!")
@@ -132,7 +143,6 @@ def render(dm: DataManager):
                 st.session_state[f"confirm_del_cow_{selected_cow.id}"] = True
                 st.warning("Click again to confirm deletion")
                 st.rerun()
-            st.rerun()
 
         info_col1, info_col2, info_col3 = st.columns(3)
         with info_col1:
@@ -263,7 +273,15 @@ def render(dm: DataManager):
                         if ev.next_due_date:
                             st.caption(f"Next Due: {ev.next_due_date}")
                     with col2:
-                        if st.button("✏️", key=f"ed_cev_{ev.id}", help="Edit"):
+                        # Right-aligned action buttons with responsive design
+                        button_col1, button_col2 = st.columns(2)
+                        with button_col1:
+                            edit_clicked = st.button("✏️", key=f"ed_cev_{ev.id}", help="Edit", use_container_width=True)
+                        with button_col2:
+                            delete_clicked = st.button("🗑️", key=f"del_cev_{ev.id}", help="Delete", use_container_width=True)
+                        
+                        # Handle edit button click
+                        if edit_clicked:
                             st.session_state.cev_edit_mode = True
                             st.session_state.cev_edit_id = ev.id
                             try:
@@ -281,7 +299,8 @@ def render(dm: DataManager):
                                     st.session_state.cev_next_due = None
                             st.rerun()
                         
-                        if st.button("🗑️", key=f"del_cev_{ev.id}", help="Delete"):
+                        # Handle delete button click
+                        if delete_clicked:
                             if st.session_state.get(f"confirm_del_event_{ev.id}", False):
                                 dm.delete_cow_event(ev.id)
                                 st.success("Cow event deleted!")

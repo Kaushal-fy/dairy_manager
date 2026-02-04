@@ -10,17 +10,87 @@ class CalendarView:
     def __init__(self):
         self.custom_css = """
         <style>
-        .fc-event {
+        /* Modern calendar styling with circular green dots */
+        .fc-daygrid-event-dot {
             background-color: #28a745 !important;
             border-color: #28a745 !important;
             border-radius: 50% !important;
-            width: 8px !important;
-            height: 8px !important;
-            margin: 2px !important;
+            width: 10px !important;
+            height: 10px !important;
+            margin: 0 auto !important;
+            display: block !important;
         }
-        .fc-daygrid-event {
+        .fc-event-dot {
             background-color: #28a745 !important;
             border-color: #28a745 !important;
+            border-radius: 50% !important;
+            width: 10px !important;
+            height: 10px !important;
+        }
+        /* Hide event titles and text */
+        .fc-event-title {
+            display: none !important;
+        }
+        .fc-event-main {
+            display: none !important;
+        }
+        .fc-event-time {
+            display: none !important;
+        }
+        .fc-list-event-title {
+            display: none !important;
+        }
+        /* Modern calendar header */
+        .fc-toolbar {
+            margin-bottom: 1rem !important;
+            padding: 0.5rem !important;
+        }
+        .fc-button {
+            background-color: #007bff !important;
+            border-color: #007bff !important;
+            border-radius: 6px !important;
+            font-size: 14px !important;
+            padding: 0.375rem 0.75rem !important;
+        }
+        .fc-button:hover {
+            background-color: #0056b3 !important;
+            border-color: #0056b3 !important;
+        }
+        .fc-button:focus {
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+        }
+        /* Day cell styling */
+        .fc-daygrid-day {
+            border: 1px solid #e9ecef !important;
+            cursor: pointer !important;
+        }
+        .fc-daygrid-day:hover {
+            background-color: #f8f9fa !important;
+        }
+        .fc-daygrid-day-number {
+            color: #495057 !important;
+            font-weight: 500 !important;
+        }
+        /* Calendar title */
+        .fc-toolbar-title {
+            font-size: 1.5rem !important;
+            font-weight: 600 !important;
+            color: #212529 !important;
+        }
+        /* Today highlighting */
+        .fc-day-today {
+            background-color: #fff3cd !important;
+        }
+        .fc-day-today .fc-daygrid-day-number {
+            background-color: #ffc107 !important;
+            color: #212529 !important;
+            border-radius: 50% !important;
+            width: 24px !important;
+            height: 24px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 2px auto !important;
         }
         </style>
         """
@@ -50,9 +120,15 @@ class CalendarView:
             "initialView": "dayGridMonth",
             "selectable": True,
             "selectMirror": True,
-            "dayMaxEvents": 3,
-            "eventDisplay": "background",
-            "height": 600
+            "dayMaxEvents": False,  # Don't limit events
+            "eventDisplay": "dot",  # Use dot display for modern look
+            "height": 600,
+            "aspectRatio": 1.35,
+            "eventColor": "#28a745",
+            "eventBorderColor": "#28a745",
+            "eventTextColor": "transparent",  # Hide text
+            "displayEventTime": False,
+            "displayEventEnd": False
         }
         
         # Render calendar
@@ -94,12 +170,13 @@ class CalendarView:
                 
                 event = {
                     "id": f"event_{date_str}",
-                    "title": f"{len(points)} record(s)",
+                    "title": "",  # Remove record count text
                     "start": parsed_date.isoformat(),
                     "end": parsed_date.isoformat(),
                     "backgroundColor": "#28a745",
                     "borderColor": "#28a745",
-                    "display": "background",
+                    "display": "dot",  # Use dot display for modern circular look
+                    "classNames": ["modern-event"],
                     "extendedProps": {
                         "data_points": points,
                         "count": len(points)
@@ -146,19 +223,30 @@ class CalendarView:
     
     @staticmethod
     def apply_custom_styling() -> str:
-        """Return CSS for green dot indicators."""
+        """Return CSS for modern circular green dot indicators."""
         return """
         <style>
-        .fc-event {
-            background-color: #28a745 !important;
-            border-color: #28a745 !important;
-        }
-        .fc-daygrid-event {
+        .fc-daygrid-event-dot {
             background-color: #28a745 !important;
             border-color: #28a745 !important;
             border-radius: 50% !important;
             width: 10px !important;
             height: 10px !important;
+            margin: 0 auto !important;
+            display: block !important;
+        }
+        .fc-event-dot {
+            background-color: #28a745 !important;
+            border-color: #28a745 !important;
+            border-radius: 50% !important;
+            width: 10px !important;
+            height: 10px !important;
+        }
+        .fc-event-title {
+            display: none !important;
+        }
+        .fc-event-main {
+            display: none !important;
         }
         </style>
         """
