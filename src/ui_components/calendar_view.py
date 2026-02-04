@@ -11,7 +11,7 @@ class CalendarView:
     
     def render(self, data_points: List[Dict[str, Any]], selected_month: Optional[datetime] = None, 
                calendar_key: str = "calendar") -> Dict[str, Any]:
-        """Render modern calendar with CSS Grid layout that works on mobile."""
+        """Render single calendar with both visual indicators and clickable dates."""
         
         if selected_month is None:
             selected_month = datetime.now()
@@ -40,188 +40,76 @@ class CalendarView:
         # Calendar header
         st.markdown(f"### {selected_month.strftime('%B %Y')}")
         
-        # Modern CSS Grid Calendar
-        calendar_css = """
+        # Add CSS for better mobile layout
+        st.markdown("""
         <style>
-        .modern-calendar {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            max-width: 100%;
-            margin: 20px auto;
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        .calendar-button button {
+            width: 100% !important;
+            min-height: 45px !important;
+            font-size: 14px !important;
+            border-radius: 8px !important;
+            margin: 2px !important;
         }
-        
-        .calendar-header {
-            background: #6c757d;
-            color: white;
-            padding: 12px 8px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 14px;
-            border-radius: 6px;
-            letter-spacing: 0.5px;
+        .calendar-button.has-data button {
+            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%) !important;
+            border: 2px solid #4caf50 !important;
+            color: #2e7d32 !important;
+            font-weight: 600 !important;
         }
-        
-        .calendar-day {
-            aspect-ratio: 1;
-            min-height: 45px;
-            background: white;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 500;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
+        .calendar-button.today button {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffcc02 100%) !important;
+            border: 2px solid #ff9800 !important;
+            color: #e65100 !important;
+            font-weight: 700 !important;
         }
-        
-        .calendar-day:hover {
-            background: #e3f2fd;
-            border-color: #2196f3;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        
-        .calendar-day.has-data {
-            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
-            border-color: #4caf50;
-            color: #2e7d32;
-        }
-        
-        .calendar-day.has-data::after {
-            content: '●';
-            position: absolute;
-            top: 4px;
-            right: 6px;
-            color: #4caf50;
-            font-size: 12px;
-        }
-        
-        .calendar-day.empty {
-            background: transparent;
-            border: none;
-            cursor: default;
-        }
-        
-        .calendar-day.today {
-            background: linear-gradient(135deg, #fff3e0 0%, #ffcc02 100%);
-            border-color: #ff9800;
-            color: #e65100;
-            font-weight: 700;
-        }
-        
         @media (max-width: 768px) {
-            .modern-calendar {
-                gap: 2px;
-                padding: 10px;
-            }
-            .calendar-header {
-                padding: 8px 4px;
-                font-size: 12px;
-            }
-            .calendar-day {
-                min-height: 40px;
-                font-size: 14px;
-                border-width: 1px;
-            }
-            .calendar-day.has-data::after {
-                font-size: 10px;
-                top: 2px;
-                right: 4px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .calendar-day {
-                min-height: 35px;
-                font-size: 12px;
-            }
-            .calendar-header {
-                font-size: 10px;
-                padding: 6px 2px;
+            .calendar-button button {
+                min-height: 40px !important;
+                font-size: 12px !important;
             }
         }
         </style>
-        """
+        """, unsafe_allow_html=True)
         
-        st.markdown(calendar_css, unsafe_allow_html=True)
-        
-        # Build calendar HTML
-        calendar_html = '<div class="modern-calendar">'
-        
-        # Days of week headers
+        # Days of week header
         days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        for day in days:
-            calendar_html += f'<div class="calendar-header">{day}</div>'
+        cols = st.columns(7)
+        for i, day in enumerate(days):
+            with cols[i]:
+                st.markdown(f"<div style='text-align: center; font-weight: bold; padding: 8px; background: #6c757d; color: white; border-radius: 6px; margin: 2px;'>{day}</div>", 
+                           unsafe_allow_html=True)
         
-        # Calendar days
-        today = date.today()
+        # Calendar grid with clickable buttons
         selected_date = None
-        
-        # Store clickable days for Streamlit buttons
-        clickable_days = []
+        today = date.today()
         
         for week in cal_data:
-            for day in week:
-                if day == 0:
-                    calendar_html += '<div class="calendar-day empty"></div>'
-                else:
-                    current_date = date(year, month, day)
-                    has_data = current_date in dates_with_data
-                    is_today = current_date == today
-                    
-                    classes = ['calendar-day']
-                    if has_data:
-                        classes.append('has-data')
-                    if is_today:
-                        classes.append('today')
-                    
-                    calendar_html += f'<div class="{" ".join(classes)}" onclick="selectDate(\'{current_date.isoformat()}\')">{day}</div>'
-                    clickable_days.append((day, current_date, has_data))
-        
-        calendar_html += '</div>'
-        
-        # Display the calendar
-        st.markdown(calendar_html, unsafe_allow_html=True)
-        
-        # Create clickable buttons for each day with data
-        st.markdown("**Click on a date to view data:**")
-        
-        selected_date = None
-        
-        # Create buttons for dates with data in a more compact layout
-        if clickable_days:
-            # Group dates by week for better layout
-            dates_with_data = [(day, current_date) for day, current_date, has_data in clickable_days if has_data]
-            
-            if dates_with_data:
-                st.markdown("**Dates with data:**")
-                # Create buttons for dates that have data
-                cols = st.columns(min(7, len(dates_with_data)))
-                for i, (day, current_date) in enumerate(dates_with_data):
-                    col_idx = i % len(cols)
-                    with cols[col_idx]:
-                        if st.button(f"{day}", key=f"{calendar_key}_btn_{day}", help=f"View data for {current_date}"):
+            cols = st.columns(7)
+            for i, day in enumerate(week):
+                with cols[i]:
+                    if day == 0:
+                        st.markdown("<div style='height: 45px;'></div>", unsafe_allow_html=True)
+                    else:
+                        current_date = date(year, month, day)
+                        has_data = current_date in dates_with_data
+                        is_today = current_date == today
+                        
+                        # Determine button styling
+                        css_classes = ['calendar-button']
+                        if has_data:
+                            css_classes.append('has-data')
+                            button_text = f"🟢 {day}"
+                        else:
+                            button_text = str(day)
+                        
+                        if is_today:
+                            css_classes.append('today')
+                        
+                        # Create clickable button with styling
+                        st.markdown(f'<div class="{" ".join(css_classes)}">', unsafe_allow_html=True)
+                        if st.button(button_text, key=f"{calendar_key}_{day}", help=f"View data for {current_date}"):
                             selected_date = current_date.isoformat()
-        
-        # Also provide a date picker as fallback
-        st.markdown("**Or select any date:**")
-        selected_date_picker = st.date_input(
-            "Select Date", 
-            value=date.today(),
-            key=f"{calendar_key}_date_picker"
-        )
-        
-        # Use date picker selection if no button was clicked
-        if not selected_date and selected_date_picker:
-            selected_date = selected_date_picker.isoformat()
+                        st.markdown('</div>', unsafe_allow_html=True)
         
         # Return result in expected format
         result = {}
