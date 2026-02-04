@@ -1,7 +1,7 @@
 import streamlit as st
 from src.data_manager import DataManager
 from src.models import MilkSale, Payment, Buyer, DailyYield
-from src.ui_components import CalendarView, EnhancedDataTable, NavigationControls, RowNumberFormatter, SearchInterface, DateRangeSelector
+from src.ui_components import CalendarView, EnhancedDataTable, NavigationControls, RowNumberFormatter, SearchInterface, DateRangeSelector, DropdownDateSelector
 from datetime import date, datetime
 import pandas as pd
 import uuid
@@ -277,7 +277,7 @@ def render(dm: DataManager):
                 st.session_state.sale_qty = 0.0
                 st.rerun()
 
-        # Sales History with Calendar View - Replace messy "All Time" view
+        # Sales History with Dropdown Date Selector - Mobile-friendly approach
         st.subheader("Sales History")
         
         # Convert sales data to calendar format
@@ -296,19 +296,13 @@ def render(dm: DataManager):
         if 'sales_selected_date' not in st.session_state:
             st.session_state.sales_selected_date = None
         
-        # Navigation controls for calendar
-        current_date = NavigationControls.render(key_prefix="sales_nav")
-        
-        # Calendar view
-        calendar_view = CalendarView()
-        calendar_result = calendar_view.render(
+        # Use dropdown date selector instead of calendar
+        selected_date = DropdownDateSelector.render(
             data_points=sales_calendar_data,
-            selected_month=current_date,
-            calendar_key="sales_calendar"
+            key_prefix="sales_dropdown"
         )
         
-        # Handle date selection from calendar
-        selected_date = calendar_view.get_selected_date_from_calendar(calendar_result)
+        # Update session state if date is selected
         if selected_date:
             st.session_state.sales_selected_date = selected_date
         

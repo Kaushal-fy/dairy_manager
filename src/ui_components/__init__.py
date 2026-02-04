@@ -5,6 +5,7 @@ from .navigation_controls import NavigationControls
 from .search_interface import SearchInterface
 from .date_range_selector import DateRangeSelector
 from .row_number_formatter import RowNumberFormatter
+from .dropdown_date_selector import DropdownDateSelector
 
 __all__ = [
     'CalendarView',
@@ -12,5 +13,6 @@ __all__ = [
     'NavigationControls',
     'SearchInterface',
     'DateRangeSelector',
-    'RowNumberFormatter'
+    'RowNumberFormatter',
+    'DropdownDateSelector'
 ]
