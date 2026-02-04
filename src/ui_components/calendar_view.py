@@ -191,31 +191,42 @@ class CalendarView:
         # Display the calendar
         st.markdown(calendar_html, unsafe_allow_html=True)
         
-        # Add a date picker below the calendar for selection
-        st.markdown("**Select a date to view data:**")
+        # Create clickable buttons for each day with data
+        st.markdown("**Click on a date to view data:**")
         
-        # Check if there's a previous selection to maintain state
-        default_date = date.today()
-        if f"{calendar_key}_last_selected" in st.session_state:
-            try:
-                default_date = datetime.fromisoformat(st.session_state[f"{calendar_key}_last_selected"]).date()
-            except:
-                default_date = date.today()
+        selected_date = None
         
+        # Create buttons for dates with data in a more compact layout
+        if clickable_days:
+            # Group dates by week for better layout
+            dates_with_data = [(day, current_date) for day, current_date, has_data in clickable_days if has_data]
+            
+            if dates_with_data:
+                st.markdown("**Dates with data:**")
+                # Create buttons for dates that have data
+                cols = st.columns(min(7, len(dates_with_data)))
+                for i, (day, current_date) in enumerate(dates_with_data):
+                    col_idx = i % len(cols)
+                    with cols[col_idx]:
+                        if st.button(f"{day}", key=f"{calendar_key}_btn_{day}", help=f"View data for {current_date}"):
+                            selected_date = current_date.isoformat()
+        
+        # Also provide a date picker as fallback
+        st.markdown("**Or select any date:**")
         selected_date_picker = st.date_input(
             "Select Date", 
-            value=default_date,
+            value=date.today(),
             key=f"{calendar_key}_date_picker"
         )
         
-        # Store the selection for next time
-        if selected_date_picker:
-            st.session_state[f"{calendar_key}_last_selected"] = selected_date_picker.isoformat()
+        # Use date picker selection if no button was clicked
+        if not selected_date and selected_date_picker:
+            selected_date = selected_date_picker.isoformat()
         
         # Return result in expected format
         result = {}
-        if selected_date_picker:
-            result['dateClick'] = {'date': selected_date_picker.isoformat()}
+        if selected_date:
+            result['dateClick'] = {'date': selected_date}
         
         return result
     
