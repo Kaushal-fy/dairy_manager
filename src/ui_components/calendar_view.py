@@ -192,12 +192,25 @@ class CalendarView:
         st.markdown(calendar_html, unsafe_allow_html=True)
         
         # Add a date picker below the calendar for selection
-        st.markdown("**Click a date above or use the date picker below:**")
+        st.markdown("**Select a date to view data:**")
+        
+        # Check if there's a previous selection to maintain state
+        default_date = date.today()
+        if f"{calendar_key}_last_selected" in st.session_state:
+            try:
+                default_date = datetime.fromisoformat(st.session_state[f"{calendar_key}_last_selected"]).date()
+            except:
+                default_date = date.today()
+        
         selected_date_picker = st.date_input(
             "Select Date", 
-            value=date.today(),
+            value=default_date,
             key=f"{calendar_key}_date_picker"
         )
+        
+        # Store the selection for next time
+        if selected_date_picker:
+            st.session_state[f"{calendar_key}_last_selected"] = selected_date_picker.isoformat()
         
         # Return result in expected format
         result = {}
