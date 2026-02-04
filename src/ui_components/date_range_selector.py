@@ -157,7 +157,7 @@ class DateRangeSelector:
             # Show preview of data
             with st.expander("Preview Data", expanded=False):
                 df_preview = pd.DataFrame(export_data['purchase_records'])
-                st.dataframe(df_preview, use_container_width=True)
+                st.dataframe(df_preview, width="stretch")
             
             # Generate download
             DateRangeSelector.generate_csv_download(export_data, key_prefix)

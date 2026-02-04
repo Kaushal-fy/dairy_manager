@@ -292,14 +292,7 @@ def render(dm: DataManager):
                 'id': sale.id
             })
         
-        # Debug information
-        st.write(f"📊 Total sales records: {len(all_sales)}")
-        if sales_calendar_data:
-            st.write(f"📅 Date range: {min(s['date'] for s in sales_calendar_data)} to {max(s['date'] for s in sales_calendar_data)}")
-        
         # Initialize calendar view state
-        if 'sales_calendar_view' not in st.session_state:
-            st.session_state.sales_calendar_view = True
         if 'sales_selected_date' not in st.session_state:
             st.session_state.sales_selected_date = None
         
