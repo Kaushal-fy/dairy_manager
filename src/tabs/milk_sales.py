@@ -428,93 +428,80 @@ def render(dm: DataManager):
                     st.session_state.pay_notes = ""
                     st.rerun()
 
-        # Payment History with Calendar View - Enhanced Interface
+        # Payment History - Tabular Format
         st.subheader("Payment History")
         
-        # Get all payments for calendar view
+        # Get all payments
         all_payments = dm.get_payments()
         
-        # Convert payments data to calendar format
-        payments_calendar_data = []
-        for payment in all_payments:
-            payments_calendar_data.append({
-                'date': payment.date,
-                'buyer_name': payment.buyer_name,
-                'entry_type': payment.entry_type,
-                'amount': payment.amount,
-                'notes': payment.notes or '',
-                'id': payment.id
-            })
-        
-        # Initialize payment calendar view state
-        if 'payments_selected_date' not in st.session_state:
-            st.session_state.payments_selected_date = None
-        
-        # Navigation controls for payment calendar
-        payments_current_date = NavigationControls.render(key_prefix="payments_nav")
-        
-        # Payment calendar view
-        payments_calendar_view = CalendarView()
-        payments_calendar_result = payments_calendar_view.render(
-            data_points=payments_calendar_data,
-            selected_month=payments_current_date,
-            calendar_key="payments_calendar"
-        )
-        
-        # Handle date selection from calendar
-        payments_selected_date = payments_calendar_view.get_selected_date_from_calendar(payments_calendar_result)
-        if payments_selected_date:
-            st.session_state.payments_selected_date = payments_selected_date
-        
-        # Display payments for selected date
-        if st.session_state.payments_selected_date:
-            st.subheader(f"Payments for {st.session_state.payments_selected_date}")
+        if all_payments:
+            # Sort payments by date (most recent first)
+            sorted_payments = sorted(all_payments, key=lambda x: x.date, reverse=True)
             
-            # Filter payments for selected date
-            selected_payments = [p for p in all_payments if p.date == st.session_state.payments_selected_date]
+            # Create table data
+            table_data = []
+            for i, payment in enumerate(sorted_payments):
+                row_number = RowNumberFormatter.get_row_number(i)
+                table_data.append({
+                    "S.No": row_number,
+                    "Date": payment.date,
+                    "Name": payment.buyer_name,
+                    "Payment Type": payment.entry_type,
+                    "Payment Amount": f"₹{payment.amount}",
+                    "Notes": payment.notes or "-"
+                })
             
-            if selected_payments:
-                for i, payment in enumerate(selected_payments):
-                    row_number = RowNumberFormatter.get_row_number(i)
-                    
-                    # Use EnhancedDataTable for proper formatting and button positioning
-                    edit_clicked, delete_clicked = EnhancedDataTable.render_payment_row(
-                        payment, row_number
-                    )
-                    
-                    # Handle edit button click
-                    if edit_clicked:
-                        st.session_state.pay_edit_mode = True
-                        st.session_state.pay_edit_id = payment.id
-                        try:
-                            st.session_state.pay_date = datetime.fromisoformat(payment.date).date()
-                        except (ValueError, AttributeError):
-                            st.session_state.pay_date = date.today()
-                        st.session_state.pay_buyer = payment.buyer_name
-                        st.session_state.pay_type = payment.entry_type
-                        st.session_state.pay_amount = payment.amount
-                        st.session_state.pay_notes = payment.notes or ""
-                        st.rerun()
-                    
-                    # Handle delete button click
-                    if delete_clicked:
-                        if st.session_state.get(f"confirm_del_pay_{payment.id}", False):
-                            dm.delete_payment(payment.id)
-                            st.success("Payment deleted!")
-                            st.rerun()
-                        else:
-                            st.session_state[f"confirm_del_pay_{payment.id}"] = True
-                            st.warning("Click again to confirm deletion")
-                            st.rerun()
-            else:
-                st.info(f"No payments recorded for {st.session_state.payments_selected_date}")
+            # Display table
+            df = pd.DataFrame(table_data)
+            st.dataframe(df, width="stretch", hide_index=True)
             
-            # Clear selection button
-            if st.button("Clear Date Selection", key="clear_payments_date"):
-                st.session_state.payments_selected_date = None
-                st.rerun()
+            # Edit/Delete functionality below the table
+            st.markdown("---")
+            st.subheader("Edit/Delete Payments")
+            
+            # Create buttons for each payment
+            for i, payment in enumerate(sorted_payments):
+                row_number = RowNumberFormatter.get_row_number(i)
+                
+                with st.container():
+                    col1, col2 = st.columns([5, 1])
+                    
+                    with col1:
+                        st.markdown(f"**Row {row_number}**: {payment.date} | {payment.buyer_name} | {payment.entry_type}: ₹{payment.amount}")
+                        if payment.notes:
+                            st.caption(f"Notes: {payment.notes}")
+                    
+                    with col2:
+                        # Edit and Delete buttons
+                        button_col1, button_col2 = st.columns(2)
+                        with button_col1:
+                            if st.button("✏️", key=f"edit_pay_table_{payment.id}", help="Edit"):
+                                st.session_state.pay_edit_mode = True
+                                st.session_state.pay_edit_id = payment.id
+                                try:
+                                    st.session_state.pay_date = datetime.fromisoformat(payment.date).date()
+                                except (ValueError, AttributeError):
+                                    st.session_state.pay_date = date.today()
+                                st.session_state.pay_buyer = payment.buyer_name
+                                st.session_state.pay_type = payment.entry_type
+                                st.session_state.pay_amount = payment.amount
+                                st.session_state.pay_notes = payment.notes or ""
+                                st.rerun()
+                        
+                        with button_col2:
+                            if st.button("🗑️", key=f"del_pay_table_{payment.id}", help="Delete"):
+                                if st.session_state.get(f"confirm_del_pay_table_{payment.id}", False):
+                                    dm.delete_payment(payment.id)
+                                    st.success("Payment deleted!")
+                                    st.rerun()
+                                else:
+                                    st.session_state[f"confirm_del_pay_table_{payment.id}"] = True
+                                    st.warning("Click again to confirm deletion")
+                                    st.rerun()
+                    
+                    st.divider()
         else:
-            st.info("Click on a date in the calendar above to view payments for that day.")
+            st.info("No payment records found.")
 
     with tab3:
         st.subheader("Buyer Ledgers")
